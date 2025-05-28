@@ -17,5 +17,10 @@ pub struct Cli {
 
 #[tokio::main]
 async fn main() {
-    let _cli = Cli::parse();
+    let cli = Cli::parse();
+
+    match cli.command {
+        Some(commands::Commands::Config(options)) => commands::process_config_options(&options),
+        _ => {}
+    }
 }

@@ -4,6 +4,8 @@ mod collector;
 mod config;
 mod download;
 
+pub use config::process_config_options;
+
 #[derive(Subcommand)]
 pub enum Commands {
     #[command(about = "Config downloader.")]
