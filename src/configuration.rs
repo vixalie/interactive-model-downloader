@@ -92,4 +92,20 @@ impl Configuration {
         self.huggingface.api_key = None;
         self.save()
     }
+
+    pub fn set_proxy(
+        &mut self,
+        protocol: String,
+        host: String,
+        port: u16,
+        username: Option<String>,
+        password: Option<String>,
+    ) -> Result<(), std::io::Error> {
+        self.proxy.protocol = Some(protocol);
+        self.proxy.host = Some(host);
+        self.proxy.port = Some(port);
+        self.proxy.username = username;
+        self.proxy.password = password;
+        self.save()
+    }
 }
