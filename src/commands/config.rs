@@ -39,6 +39,11 @@ pub enum WriteableContent {
         #[arg(help = "HuggingFace access key.")]
         key: String,
     },
+    #[command(name = "enable-proxy", about = "Switch whether to use a proxy server.")]
+    EnableProxy {
+        #[arg(help = "Proxy enable state.")]
+        flag: Option<bool>,
+    },
     #[command(name = "proxy", about = "Operate proxy.")]
     Proxy {
         #[arg(help = "Proxy server URL.")]
