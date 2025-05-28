@@ -70,7 +70,7 @@ pub fn process_config_options(options: &ConfigOptions) {
         ConfigAction::Get { action } => show_config(action),
         ConfigAction::Set { action } => set_config(action),
         ConfigAction::Clear { action } => clear_config(action),
-        ConfigAction::All => {}
+        ConfigAction::All => show_all_config(),
     }
 }
 
@@ -181,4 +181,35 @@ fn clear_config(action: &ReadableContent) {
             println!("Proxy server settings have been cleared.")
         }
     }
+}
+
+fn show_all_config() {
+    let configuration = crate::configuration::CONFIGURATION
+        .lock()
+        .expect("Failed to access downloader configuration.");
+    println!(
+        "Civitai access key: {}",
+        configuration
+            .civitai
+            .api_key
+            .clone()
+            .unwrap_or("[NOT SET]".to_string())
+    );
+    println!(
+        "Hugging Face access key: {}",
+        configuration
+            .huggingface
+            .api_key
+            .clone()
+            .unwrap_or("[NOT SET]".to_string())
+    );
+    println!(
+        "Proxy Server: {}",
+        configuration
+            .proxy
+            .get_proxy_url()
+            .map(|url| url.to_string())
+            .unwrap_or("[NOT SET]".to_string())
+    );
+    println!("Use Proxy: {}", configuration.proxy.use_proxy);
 }
