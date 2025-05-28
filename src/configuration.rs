@@ -1,4 +1,4 @@
-use std::sync::{LazyLock, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
 
 use reqwest::{Proxy, Url};
 use serde::{Deserialize, Serialize};
@@ -46,7 +46,7 @@ impl ProxyConfig {
     }
 
     pub fn get_proxy(&self) -> Option<Proxy> {
-        self.get_proxy_url().map(|url| Proxy::all(url))
+        self.get_proxy_url().and_then(|url| Proxy::all(url).ok())
     }
 }
 
@@ -59,7 +59,7 @@ pub struct Configuration {
 
 pub static CONFIGURATION: LazyLock<Arc<Mutex<Configuration>>> = LazyLock::new(|| {
     let config_dir = directories::UserDirs::new()
-        .map(|dirs| dirs.home_dir())
+        .map(|dirs| dirs.home_dir().to_path_buf())
         .map(|home_dir| home_dir.join(".config"))
         .map(|config_dir| config_dir.join("imd"));
     if let Some(conf_dir) = config_dir {
@@ -83,7 +83,7 @@ pub static CONFIGURATION: LazyLock<Arc<Mutex<Configuration>>> = LazyLock::new(||
 impl Configuration {
     fn save(&self) -> Result<(), std::io::Error> {
         let config_dir = directories::UserDirs::new()
-            .map(|dirs| dirs.home_dir())
+            .map(|dirs| dirs.home_dir().to_path_buf())
             .map(|home_dir| home_dir.join(".config"))
             .map(|config_dir| config_dir.join("imd"));
         if let Some(conf_dir) = config_dir {
@@ -91,7 +91,8 @@ impl Configuration {
                 std::fs::create_dir_all(&conf_dir)?;
             }
             let config_file_path = conf_dir.join("config.toml");
-            let config = toml::to_string(self)?;
+            let config = toml::to_string(self)
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
             std::fs::write(config_file_path, config)?;
             Ok(())
         } else {
