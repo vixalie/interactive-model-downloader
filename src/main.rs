@@ -1,7 +1,10 @@
 use clap::Parser;
 
+mod civitai;
 mod commands;
 mod configuration;
+mod downloader;
+mod hugging_face;
 
 #[derive(Parser)]
 #[command(
