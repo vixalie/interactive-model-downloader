@@ -64,3 +64,122 @@ pub enum ReadableContent {
     #[command(name = "proxy", about = "Show proxy.")]
     Proxy,
 }
+
+pub fn process_config_options(options: &ConfigOptions) {
+    match &options.action {
+        ConfigAction::Get { action } => show_config(action),
+        ConfigAction::Set { action } => set_config(action),
+        ConfigAction::Clear { action } => {}
+        ConfigAction::All => {}
+        _ => {}
+    }
+}
+
+fn show_config(action: &ReadableContent) {
+    let configuration = crate::configuration::CONFIGURATION
+        .lock()
+        .expect("Failed to retreive configuration.");
+    match action {
+        ReadableContent::CivitaiKey => {
+            if let Some(key) = &configuration.civitai.api_key {
+                println!("Civitai access key: {key}")
+            } else {
+                println!("Civitai access key has not been set.")
+            }
+        }
+        ReadableContent::HuggingFaceKey => {
+            if let Some(key) = &configuration.huggingface.api_key {
+                println!("HuggingFace access key: {key}")
+            } else {
+                println!("HuggingFace access key has not been set.")
+            }
+        }
+        ReadableContent::Proxy => {
+            if let Some(proxy) = configuration.proxy.get_proxy_url() {
+                if configuration.proxy.use_proxy {
+                    println!("Using proxy server: {proxy}")
+                } else {
+                    println!("Downloader will not using proxy server.")
+                }
+            } else {
+                println!("Proxy has not been set.")
+            }
+        }
+    }
+}
+
+fn set_config(action: &WriteableContent) {
+    let mut configuration = crate::configuration::CONFIGURATION
+        .lock()
+        .expect("Failed to access downloader configuration.");
+    match action {
+        WriteableContent::CivitaiKey { key } => {
+            configuration
+                .set_civitai_api_key(key.clone())
+                .expect("Failed to save  Civitai access key.");
+            println!("Civitai access key has been set.")
+        }
+        WriteableContent::HuggingFaceKey { key } => {
+            configuration
+                .set_huggingface_api_key(key.clone())
+                .expect("Failed to save HuggingFace access key.");
+            println!("HuggingFace access key has been set.")
+        }
+        WriteableContent::Proxy {
+            url,
+            username,
+            password,
+        } => {
+            let parsed_url = reqwest::Url::parse(&url).expect("Given proxy URL is invalid.");
+            configuration
+                .set_proxy(
+                    parsed_url.scheme().to_string(),
+                    parsed_url.host().unwrap_or("".to_string()),
+                    parsed_url.port(),
+                    username,
+                    password,
+                )
+                .expect("Failed to save proxy server configuration.");
+            print!("Proxy server has been set.");
+            if configuration.proxy.use_proxy {
+                println!("")
+            } else {
+                println!(
+                    " Proxy server is not enabled, you need enable it by \"enable-proxy\" command first."
+                )
+            }
+        }
+        WriteableContent::EnableProxy { flag } => {
+            configuration
+                .set_use_proxy(flag.unwrap_or_default())
+                .expect("Failed to switch proxy server enable state.");
+            println!("Download through proxy server has been activated.")
+        }
+    }
+}
+
+fn clear_config(action: &ReadableContent) {
+    let mut configuration = crate::configuration::CONFIGURATION
+        .lock()
+        .expect("Failed to access downloader configuration.");
+    match action {
+        ReadableContent::CivitaiKey => {
+            configuration
+                .clear_civitai_api_key()
+                .expect("Failed to clear Civitai access key.");
+            println!("Civitai access key has been cleared.")
+        }
+        ReadableContent::HuggingFaceKey => {
+            configuration
+                .clear_huggingface_api_key()
+                .expect("Failed to clear HuggingFace access key.");
+            println!("HuggingFace access key has been cleared.")
+        }
+        ReadableContent::Proxy => {
+            configuration
+                .clear_proxy()
+                .expect("Failed to clear proxy server settings.");
+            println!("Proxy server settings have been cleared.")
+        }
+    }
+}
