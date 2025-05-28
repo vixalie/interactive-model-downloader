@@ -146,7 +146,7 @@ impl Configuration {
     }
 
     pub fn set_use_proxy(&mut self, use_proxy: bool) -> Result<(), std::io::Error> {
-        self.use_proxy = use_proxy;
+        self.proxy.use_proxy = use_proxy;
         self.save()
     }
 }
