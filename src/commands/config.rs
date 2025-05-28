@@ -69,9 +69,8 @@ pub fn process_config_options(options: &ConfigOptions) {
     match &options.action {
         ConfigAction::Get { action } => show_config(action),
         ConfigAction::Set { action } => set_config(action),
-        ConfigAction::Clear { action } => {}
+        ConfigAction::Clear { action } => clear_config(action),
         ConfigAction::All => {}
-        _ => {}
     }
 }
 
@@ -116,7 +115,7 @@ fn set_config(action: &WriteableContent) {
         WriteableContent::CivitaiKey { key } => {
             configuration
                 .set_civitai_api_key(key.clone())
-                .expect("Failed to save  Civitai access key.");
+                .expect("Failed to save Civitai access key.");
             println!("Civitai access key has been set.")
         }
         WriteableContent::HuggingFaceKey { key } => {
@@ -134,10 +133,10 @@ fn set_config(action: &WriteableContent) {
             configuration
                 .set_proxy(
                     parsed_url.scheme().to_string(),
-                    parsed_url.host().unwrap_or("".to_string()),
+                    parsed_url.host().map(|h| h.to_string()).unwrap_or_default(),
                     parsed_url.port(),
-                    username,
-                    password,
+                    username.clone(),
+                    password.clone(),
                 )
                 .expect("Failed to save proxy server configuration.");
             print!("Proxy server has been set.");
