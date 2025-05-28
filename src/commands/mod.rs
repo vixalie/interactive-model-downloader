@@ -7,7 +7,7 @@ mod download;
 #[derive(Subcommand)]
 pub enum Commands {
     #[command(about = "Config downloader.")]
-    Config,
+    Config(config::ConfigOptions),
     #[command(about = "Analyze a model URL and download the model.")]
     Download,
     #[command(about = "Renew locally saved model meta information.")]
