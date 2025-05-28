@@ -1,5 +1,6 @@
 use std::sync::{LazyLock, Mutex};
 
+use reqwest::{Proxy, Url};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -19,6 +20,34 @@ pub struct ProxyConfig {
     pub port: Option<u16>,
     pub username: Option<String>,
     pub password: Option<String>,
+}
+
+impl ProxyConfig {
+    pub fn get_proxy_url(&self) -> Option<Url> {
+        if self.protocol.is_none() || self.host.is_none() || self.port.is_none() {
+            return None;
+        }
+        let url_str = format!(
+            "{}://{}",
+            self.protocol.clone().unwrap_or("http".to_string()),
+            self.host.clone().unwrap_or("127.0.0.1".to_string())
+        );
+        let mut url = reqwest::Url::parse(&url_str).unwrap();
+        if let Some(port) = self.port {
+            url.set_port(Some(port)).unwrap();
+        }
+        if let Some(username) = &self.username {
+            url.set_username(username).unwrap();
+        }
+        if let Some(password) = &self.password {
+            url.set_password(Some(password)).unwrap();
+        }
+        Some(url)
+    }
+
+    pub fn get_proxy(&self) -> Option<Proxy> {
+        self.get_proxy_url().map(|url| Proxy::all(url))
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -97,15 +126,20 @@ impl Configuration {
         &mut self,
         protocol: String,
         host: String,
-        port: u16,
+        port: Option<u16>,
         username: Option<String>,
         password: Option<String>,
     ) -> Result<(), std::io::Error> {
         self.proxy.protocol = Some(protocol);
         self.proxy.host = Some(host);
-        self.proxy.port = Some(port);
+        self.proxy.port = port;
         self.proxy.username = username;
         self.proxy.password = password;
+        self.save()
+    }
+
+    pub fn clear_proxy(&mut self) -> Result<(), std::io::Error> {
+        self.proxy = ProxyConfig::default();
         self.save()
     }
 }
