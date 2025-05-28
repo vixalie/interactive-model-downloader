@@ -15,6 +15,7 @@ pub struct HuggingFaceConfig {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ProxyConfig {
+    pub use_proxy: bool,
     pub protocol: Option<String>,
     pub host: Option<String>,
     pub port: Option<u16>,
@@ -141,6 +142,11 @@ impl Configuration {
 
     pub fn clear_proxy(&mut self) -> Result<(), std::io::Error> {
         self.proxy = ProxyConfig::default();
+        self.save()
+    }
+
+    pub fn set_use_proxy(&mut self, use_proxy: bool) -> Result<(), std::io::Error> {
+        self.use_proxy = use_proxy;
         self.save()
     }
 }
