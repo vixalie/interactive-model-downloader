@@ -24,6 +24,7 @@ async fn main() {
 
     match cli.command {
         Some(commands::Commands::Config(options)) => commands::process_config_options(&options),
+        Some(commands::Commands::Download(options)) => commands::process_download_options(&options),
         _ => {}
     }
 }
