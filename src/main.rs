@@ -3,6 +3,7 @@ use clap::Parser;
 mod civitai;
 mod commands;
 mod configuration;
+mod detector;
 mod downloader;
 mod hugging_face;
 
