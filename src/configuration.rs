@@ -150,3 +150,13 @@ impl Configuration {
         self.save()
     }
 }
+
+pub fn check_civitai_key_exists() -> bool {
+    let config = CONFIGURATION.lock().unwrap();
+    config.civitai_key.is_some()
+}
+
+pub fn check_huggingface_key_exists() -> bool {
+    let config = CONFIGURATION.lock().unwrap();
+    config.huggingface_key.is_some()
+}
