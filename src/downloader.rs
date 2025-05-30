@@ -1,5 +1,5 @@
 use hyper::{HeaderMap, header};
-use reqwest::{ClientBuilder, Url};
+use reqwest::{Client, ClientBuilder, Url};
 
 pub enum Platform {
     Civitai,
@@ -25,6 +25,7 @@ pub fn make_client(platform: &Platform) -> anyhow::Result<Client> {
     } else {
         client_builder.no_proxy();
     }
+    let client = client_builder.build()?;
 
-    Ok(client_builder.build())
+    Ok(client)
 }
