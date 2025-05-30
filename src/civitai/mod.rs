@@ -1,6 +1,7 @@
 use anyhow::{anyhow, bail};
 use reqwest::Url;
 
+mod meta;
 mod model;
 
 pub fn try_parse_civitai_model_url(url: &Url) -> anyhow::Result<(String, Option<String>)> {
