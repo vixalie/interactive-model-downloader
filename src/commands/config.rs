@@ -67,10 +67,10 @@ pub enum ReadableContent {
 
 pub async fn process_config_options(options: &ConfigOptions) {
     match &options.action {
-        ConfigAction::Get { action } => show_config(action),
-        ConfigAction::Set { action } => set_config(action),
-        ConfigAction::Clear { action } => clear_config(action),
-        ConfigAction::All => show_all_config(),
+        ConfigAction::Get { action } => show_config(action).await,
+        ConfigAction::Set { action } => set_config(action).await,
+        ConfigAction::Clear { action } => clear_config(action).await,
+        ConfigAction::All => show_all_config().await,
     }
 }
 
@@ -107,20 +107,20 @@ fn show_config(action: &ReadableContent) {
     }
 }
 
-fn set_config(action: &WriteableContent) {
-    let mut configuration = crate::configuration::CONFIGURATION
-        .lock()
-        .expect("Failed to access downloader configuration.");
+async fn set_config(action: &WriteableContent) {
+    let mut configuration = crate::configuration::CONFIGURATION.read().await;
     match action {
         WriteableContent::CivitaiKey { key } => {
             configuration
                 .set_civitai_api_key(key.clone())
+                .await
                 .expect("Failed to save Civitai access key.");
             println!("Civitai access key has been set.")
         }
         WriteableContent::HuggingFaceKey { key } => {
             configuration
                 .set_huggingface_api_key(key.clone())
+                .await
                 .expect("Failed to save HuggingFace access key.");
             println!("HuggingFace access key has been set.")
         }
@@ -138,6 +138,7 @@ fn set_config(action: &WriteableContent) {
                     username.clone(),
                     password.clone(),
                 )
+                .await
                 .expect("Failed to save proxy server configuration.");
             print!("Proxy server has been set.");
             if configuration.proxy.use_proxy {
@@ -151,42 +152,42 @@ fn set_config(action: &WriteableContent) {
         WriteableContent::EnableProxy { flag } => {
             configuration
                 .set_use_proxy(flag.unwrap_or_default())
+                .await
                 .expect("Failed to switch proxy server enable state.");
             println!("Download through proxy server has been activated.")
         }
     }
 }
 
-fn clear_config(action: &ReadableContent) {
-    let mut configuration = crate::configuration::CONFIGURATION
-        .lock()
-        .expect("Failed to access downloader configuration.");
+async fn clear_config(action: &ReadableContent) {
+    let mut configuration = crate::configuration::CONFIGURATION.write().await;
     match action {
         ReadableContent::CivitaiKey => {
             configuration
                 .clear_civitai_api_key()
+                .await
                 .expect("Failed to clear Civitai access key.");
             println!("Civitai access key has been cleared.")
         }
         ReadableContent::HuggingFaceKey => {
             configuration
                 .clear_huggingface_api_key()
+                .await
                 .expect("Failed to clear HuggingFace access key.");
             println!("HuggingFace access key has been cleared.")
         }
         ReadableContent::Proxy => {
             configuration
                 .clear_proxy()
+                .await
                 .expect("Failed to clear proxy server settings.");
             println!("Proxy server settings have been cleared.")
         }
     }
 }
 
-fn show_all_config() {
-    let configuration = crate::configuration::CONFIGURATION
-        .lock()
-        .expect("Failed to access downloader configuration.");
+async fn show_all_config() {
+    let configuration = crate::configuration::CONFIGURATION.read().await;
     println!(
         "Civitai access key: {}",
         configuration
