@@ -14,8 +14,8 @@ pub fn detect_platform(url: &Url) -> Option<Platform> {
     }
 }
 
-pub fn make_client(platform: &Platform) -> anyhow::Result<Client> {
-    let config = crate::configuration::CONFIGURATION.lock().unwrap();
+pub async fn make_client(platform: &Platform) -> anyhow::Result<Client> {
+    let config = crate::configuration::CONFIGURATION.read().await;
     let proxy = config.proxy.get_proxy();
 
     let client_builder = ClientBuilder::new();
