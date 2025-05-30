@@ -1,6 +1,7 @@
 use anyhow::{anyhow, bail};
 use reqwest::Url;
 
+mod download_task;
 mod meta;
 mod model;
 
