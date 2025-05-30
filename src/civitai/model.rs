@@ -117,8 +117,8 @@ pub struct ModelVersionImage {
     pub hash: String,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", default)]
 pub struct ModelVersion {
     pub id: u64,
     pub index: u32,
