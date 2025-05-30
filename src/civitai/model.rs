@@ -65,30 +65,51 @@ pub enum ModelFileFormat {
     Other,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
 pub struct ModelVersionFileMeta {
     pub fp: Option<ModelFileFloatingPoints>,
     pub size: Option<ModelSize>,
     pub format: Option<ModelFileFormat>,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ModelVersionFileHashes {
+    #[serde(rename = "AutoV1")]
+    pub auto_v1: Option<String>,
+    #[serde(rename = "AutoV2")]
+    pub auto_v2: Option<String>,
+    #[serde(rename = "AutoV3")]
+    pub auto_v3: Option<String>,
+    #[serde(rename = "SHA256")]
+    pub sha256: Option<String>,
+    #[serde(rename = "CRC32")]
+    pub crc32: Option<String>,
+    #[serde(rename = "BLAKE3")]
+    pub blake3: Option<String>,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ModelVersionFile {
+    pub id: u64,
+    #[serde(rename = "sizeKB")]
     pub size_kb: f64,
+    pub name: String,
     pub pickle_scan_result: FileScanResult,
     pub virus_scan_result: FileScanResult,
     #[serde(default)]
     pub scanned_at: Option<UtcDateTime>,
     pub primary: Option<bool>,
     pub metadata: ModelVersionFileMeta,
+    pub hashes: ModelVersionFileHashes,
+    pub download_url: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ModelVersionImage {
-    pub id: String,
     pub url: String,
     pub nsfw: String,
     pub width: u32,
@@ -98,63 +119,31 @@ pub struct ModelVersionImage {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ModelVersionStat {
-    pub download_count: u64,
-    pub rating_count: u64,
-    pub rating: f32,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ReversingModelInfo {
-    pub name: String,
-    #[serde(rename = "type")]
-    pub model_type: ModelType,
-    pub nsfw: bool,
-    pub poi: bool,
-    pub mode: ModelMode,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ModelVersion {
     pub id: u64,
+    pub index: u32,
     pub name: String,
     pub description: String,
-    #[serde(default)]
-    pub model: Option<ReversingModelInfo>,
-    #[serde(default)]
-    pub model_id: Option<u64>,
     pub created_at: UtcDateTime,
+    pub base_model: Option<String>,
     pub download_url: String,
     pub trained_words: Vec<String>,
     pub files: Vec<ModelVersionFile>,
     pub images: Vec<ModelVersionImage>,
-    pub stats: ModelVersionStat,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ModelMeta {
-    pub total_items: String,
-    pub page_size: String,
-    pub total_pages: String,
-    pub next_page: String,
-    pub prev_page: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Model {
     pub id: u64,
+    pub name: String,
     pub description: String,
+    pub allow_no_credit: bool,
     pub nsfw: bool,
     #[serde(rename = "type")]
     pub model_type: ModelType,
     pub tags: Vec<String>,
     pub mode: Option<ModelMode>,
     pub creator: Creator,
-    pub stats: ModelStats,
     pub model_versions: Vec<ModelVersion>,
-    pub metadata: ModelMeta,
 }
