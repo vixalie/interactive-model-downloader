@@ -63,8 +63,7 @@ pub struct Configuration {
 pub static CONFIGURATION: LazyLock<Arc<RwLock<Configuration>>> = LazyLock::new(|| {
     let config_dir = directories::UserDirs::new()
         .map(|dirs| dirs.home_dir().to_path_buf())
-        .map(|home_dir| home_dir.join(".config"))
-        .map(|config_dir| config_dir.join("imd"));
+        .map(|home_dir| home_dir.join(".config").join("imd"));
     if let Some(conf_dir) = config_dir {
         if !conf_dir.exists() {
             std::fs::create_dir_all(&conf_dir).expect("Failed to create config directory.");
