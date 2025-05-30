@@ -1,5 +1,8 @@
-use anyhow::anyhow;
+use std::path::PathBuf;
+
+use anyhow::{anyhow, ensure};
 use reqwest::{Client, Method, Request, header};
+use tokio::{fs::File, io::AsyncWriteExt};
 
 use super::model;
 
@@ -24,8 +27,73 @@ pub async fn fetch_model_metadata(client: &Client, model_id: &str) -> anyhow::Re
 }
 
 pub async fn save_model_meta(model_meta: &model::Model) -> anyhow::Result<()> {
-    let current_dir = std::env::current_dir()?;
-    let meta_file_path = current_dir.join(format!("{}.json", model_meta.id));
-    let meta_file = File::create(meta_file_path)?;
+    let cache_dir = directories::UserDirs::new()
+        .map(|dirs| dirs.home_dir().to_path_buf())
+        .map(|home_dir| home_dir.join(".config").join("imd").join("cache"));
+    ensure!(cache_dir.is_none(), "Failed to get config directory.");
+    let cache_dir = cache_dir.unwrap();
+
+    if !cache_dir.exists() {
+        std::fs::create_dir_all(&cache_dir)?;
+    }
+
+    let meta_file_path = cache_dir.join(format!("{}.json", model_meta.id));
+    let meta_file = File::create(meta_file_path).await?;
     serde_json::to_writer_pretty(meta_file, model_meta)?;
+
+    Ok(())
+}
+
+pub async fn save_model_version_readme(
+    model_meta: &model::Model,
+    version_id: u64,
+) -> anyhow::Result<()> {
+    let current_dir = std::env::current_dir()?;
+    let model_version_meta = model_meta
+        .model_versions
+        .iter()
+        .find(|v| v.id == version_id)
+        .ok_or(anyhow!("The given model version does not exist."))?;
+    let model_version_filename = PathBuf::from(model_version_meta.name.clone())
+        .file_name()
+        .unwrap_or(format!("{}", model_version_meta.id));
+    let meta_file_path = current_dir.join(format!("{model_version_filename}.md"));
+
+    let model_description = html2md_rs::to_md::safe_from_html_to_md(model_meta.description.clone())
+        .map_err(|e| anyhow!("Failed to convert model description to markdown, {}", e))?;
+    let model_version_description = html2md_rs::to_md::safe_from_html_to_md(
+        model_version_meta.description.clone(),
+    )
+    .map_err(|e| {
+        anyhow!(
+            "Failed to convert model version description to markdown, {}",
+            e
+        )
+    })?;
+
+    let meta_file = File::create(meta_file_path).await?;
+    meta_file
+        .write_all(format!("# {}\n\n", model_meta.name).as_bytes())
+        .await?;
+    meta_file.write_all(model_description.as_bytes()).await?;
+    meta_file
+        .write_all(format!("\n\n## Version: {}\n\n", model_version_meta.name).as_bytes())
+        .await?;
+    meta_file
+        .write_all(model_version_description.as_bytes())
+        .await?;
+    meta_file.write_all(b"\n\n").await?;
+
+    if model_version_meta.trained_words.len() > 0 {
+        meta_file.write_all(b"## Trained Words\n\n").await?;
+        for word in model_version_meta.trained_words.iter() {
+            meta_file
+                .write_all(format!("- {}\n", word).as_bytes())
+                .await?;
+        }
+    }
+
+    meta_file.flush().await?;
+
+    Ok(())
 }
