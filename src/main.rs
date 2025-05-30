@@ -23,8 +23,12 @@ async fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Some(commands::Commands::Config(options)) => commands::process_config_options(&options),
-        Some(commands::Commands::Download(options)) => commands::process_download_options(&options),
+        Some(commands::Commands::Config(options)) => {
+            commands::process_config_options(&options).await
+        }
+        Some(commands::Commands::Download(options)) => {
+            commands::process_download_options(&options).await
+        }
         _ => {}
     }
 }

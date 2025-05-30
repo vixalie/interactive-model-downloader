@@ -65,7 +65,7 @@ pub enum ReadableContent {
     Proxy,
 }
 
-pub fn process_config_options(options: &ConfigOptions) {
+pub async fn process_config_options(options: &ConfigOptions) {
     match &options.action {
         ConfigAction::Get { action } => show_config(action),
         ConfigAction::Set { action } => set_config(action),

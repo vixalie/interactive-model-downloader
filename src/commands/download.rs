@@ -22,7 +22,7 @@ pub struct DownloadOptions {
     pub fix_missing_dirs: bool,
 }
 
-pub fn process_download_options(options: &DownloadOptions) {
+pub async fn process_download_options(options: &DownloadOptions) {
     let target_url = reqwest::Url::parse(&options.url).expect("The given url is invalid.");
 
     let target_platform = crate::downloader::detect_platform(&target_url);
