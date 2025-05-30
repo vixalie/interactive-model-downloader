@@ -1,7 +1,9 @@
-use std::sync::{Arc, LazyLock, Mutex};
+use std::sync::{Arc, LazyLock};
 
+use anyhow::bail;
 use reqwest::{Proxy, Url};
 use serde::{Deserialize, Serialize};
+use tokio::{fs, sync::RwLock};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CivitaiConfig {
@@ -58,7 +60,7 @@ pub struct Configuration {
     pub proxy: ProxyConfig,
 }
 
-pub static CONFIGURATION: LazyLock<Arc<Mutex<Configuration>>> = LazyLock::new(|| {
+pub static CONFIGURATION: LazyLock<Arc<RwLock<Configuration>>> = LazyLock::new(|| {
     let config_dir = directories::UserDirs::new()
         .map(|dirs| dirs.home_dir().to_path_buf())
         .map(|home_dir| home_dir.join(".config"))
@@ -73,90 +75,88 @@ pub static CONFIGURATION: LazyLock<Arc<Mutex<Configuration>>> = LazyLock::new(||
                 std::fs::read_to_string(config_file_path).expect("Failed to read config file.");
             let config: Configuration =
                 toml::from_str(&config).expect("Failed to parse config file.");
-            return Arc::new(Mutex::new(config));
+            return Arc::new(RwLock::new(config));
         }
     } else {
         panic!("Failed to get config directory.");
     }
-    Arc::new(Mutex::new(Configuration::default()))
+    Arc::new(RwLock::new(Configuration::default()))
 });
 
 impl Configuration {
-    fn save(&self) -> Result<(), std::io::Error> {
+    async fn save(&self) -> anyhow::Result<()> {
         let config_dir = directories::UserDirs::new()
             .map(|dirs| dirs.home_dir().to_path_buf())
             .map(|home_dir| home_dir.join(".config"))
             .map(|config_dir| config_dir.join("imd"));
         if let Some(conf_dir) = config_dir {
             if !conf_dir.exists() {
-                std::fs::create_dir_all(&conf_dir)?;
+                fs::create_dir_all(&conf_dir).await?;
             }
             let config_file_path = conf_dir.join("config.toml");
             let config = toml::to_string(self)
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
-            std::fs::write(config_file_path, config)?;
-            Ok(())
+            fs::write(config_file_path, config).await?;
         } else {
-            Err(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "Failed to get config directory.",
-            ))
+            bail!("Failed to get config directory.");
         }
+
+        Ok(())
     }
 
-    pub fn set_civitai_api_key(&mut self, api_key: String) -> Result<(), std::io::Error> {
+    pub async fn set_civitai_api_key(&mut self, api_key: String) -> anyhow::Result<()> {
         self.civitai.api_key = Some(api_key);
-        self.save()
+        self.save().await
     }
 
-    pub fn clear_civitai_api_key(&mut self) -> Result<(), std::io::Error> {
+    pub async fn clear_civitai_api_key(&mut self) -> anyhow::Result<()> {
         self.civitai.api_key = None;
-        self.save()
+        self.save().await
     }
 
-    pub fn set_huggingface_api_key(&mut self, api_key: String) -> Result<(), std::io::Error> {
+    pub async fn set_huggingface_api_key(&mut self, api_key: String) -> anyhow::Result<()> {
         self.huggingface.api_key = Some(api_key);
-        self.save()
+        self.save().await
     }
 
-    pub fn clear_huggingface_api_key(&mut self) -> Result<(), std::io::Error> {
+    pub async fn clear_huggingface_api_key(&mut self) -> anyhow::Result<()> {
         self.huggingface.api_key = None;
-        self.save()
+        self.save().await
     }
 
-    pub fn set_proxy(
+    pub async fn set_proxy(
         &mut self,
         protocol: String,
         host: String,
         port: Option<u16>,
         username: Option<String>,
         password: Option<String>,
-    ) -> Result<(), std::io::Error> {
+    ) -> anyhow::Result<()> {
         self.proxy.protocol = Some(protocol);
         self.proxy.host = Some(host);
         self.proxy.port = port;
         self.proxy.username = username;
         self.proxy.password = password;
-        self.save()
+        self.save().await
     }
 
-    pub fn clear_proxy(&mut self) -> Result<(), std::io::Error> {
+    pub async fn clear_proxy(&mut self) -> anyhow::Result<()> {
         self.proxy = ProxyConfig::default();
-        self.save()
+        self.save().await
     }
 
-    pub fn set_use_proxy(&mut self, use_proxy: bool) -> Result<(), std::io::Error> {
+    pub async fn set_use_proxy(&mut self, use_proxy: bool) -> anyhow::Result<()> {
         self.proxy.use_proxy = use_proxy;
-        self.save()
+        self.save().await
     }
 }
 
-pub fn check_civitai_key_exists() -> bool {
-    let config = CONFIGURATION.lock().unwrap();
+pub async fn check_civitai_key_exists() -> bool {
+    let config = CONFIGURATION.read().await;
     config.civitai_key.is_some()
 }
 
-pub fn check_huggingface_key_exists() -> bool {
-    let config = CONFIGURATION.lock().unwrap();
+pub async fn check_huggingface_key_exists() -> bool {
+    let config = CONFIGURATION.read().await;
     config.huggingface_key.is_some()
 }
