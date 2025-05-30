@@ -47,6 +47,7 @@ pub async fn download_single_model_file(
         downloaded_size = min(downloaded_size + chunk.len() as u64, file_legnth);
         pb.set_position(downloaded_size);
     }
+    file.flush().await?;
 
     pb.finish_with_message(format!(
         "File {} download completed.",
