@@ -476,6 +476,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
+name = "html2md-rs"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "153717a95db950deae78899e9b3ba69702ead5b50c98f83f0f8d366c17605819"
+dependencies = [
+ "percent-encoding",
+]
+
+[[package]]
 name = "http"
 version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -707,6 +716,7 @@ dependencies = [
  "clap",
  "dialoguer",
  "directories",
+ "html2md-rs",
  "hyper",
  "indicatif",
  "reqwest",
