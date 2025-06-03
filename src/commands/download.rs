@@ -41,10 +41,14 @@ pub async fn process_download_options(options: &DownloadOptions) {
                         panic!("{}", error);
                     }
                 };
-            println!(
-                "Preceeding to download model {model_id}, version id {}",
-                model_version_id.unwrap_or("[UNSET]".to_string())
-            );
+            let civitai_client =
+                crate::downloader::make_client(&crate::downloader::Platform::Civitai)
+                    .await
+                    .expect("Failed to initialize client. ");
+            crate::civitai::download_from_civitai(&civitai_client, model_id, model_version_id)
+                .await
+                .expect("Failed to download model file(s). ");
+            println!("Download completed.");
         }
         Some(crate::downloader::Platform::HuggingFace) => {
             if !crate::configuration::check_huggingface_key_exists() {
