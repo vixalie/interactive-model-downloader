@@ -3,12 +3,14 @@ use std::{cmp::min, env};
 use anyhow::anyhow;
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
+use reqwest::Client;
 use tokio::{fs::File, io::AsyncWriteExt, task};
 
 use super::model;
 use crate::downloader::{self, Platform};
 
 pub async fn download_single_model_file(
+    client: &Client,
     model_version_meta: &model::ModelVersion,
     file_id: u64,
 ) -> anyhow::Result<String> {
@@ -19,7 +21,6 @@ pub async fn download_single_model_file(
         .ok_or(anyhow!("Request model file is not found."))?;
     println!("Downloading file: {}", selected_file.name);
     let target_file_path = env::current_dir()?.join(selected_file.name.clone());
-    let client = downloader::make_client(&Platform::Civitai).await?;
     let download_request = client.request(reqwest::Method::GET, selected_file.download_url.clone());
     let config = crate::configuration::CONFIGURATION.read().await;
     download_request.bearer_auth(&config.civitai.api_key);
