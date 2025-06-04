@@ -1,4 +1,4 @@
-use std::{cmp::min, env};
+use std::{cmp::min, env, path::PathBuf};
 
 use anyhow::anyhow;
 use futures_util::StreamExt;
@@ -13,6 +13,7 @@ pub async fn download_single_model_file(
     client: &Client,
     model_version_meta: &model::ModelVersion,
     file_id: u64,
+    destination_path: Option<PathBuf>,
 ) -> anyhow::Result<String> {
     let selected_file = model_version_meta
         .files
@@ -20,7 +21,11 @@ pub async fn download_single_model_file(
         .find(|f| f.id == file_id)
         .ok_or(anyhow!("Request model file is not found."))?;
     println!("Downloading file: {}", selected_file.name);
-    let target_file_path = env::current_dir()?.join(selected_file.name.clone());
+    let target_file_path = match destination_path {
+        Some(given_path) => given_path,
+        None => env::current_dir()?,
+    }
+    .join(selected_file.name.clone());
     let download_request = client.request(reqwest::Method::GET, selected_file.download_url.clone());
     let config = crate::configuration::CONFIGURATION.read().await;
     download_request.bearer_auth(&config.civitai.api_key);
