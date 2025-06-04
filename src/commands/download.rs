@@ -24,6 +24,12 @@ pub struct DownloadOptions {
 pub async fn process_download_options(options: &DownloadOptions) {
     let target_url = reqwest::Url::parse(&options.url).expect("The given url is invalid.");
 
+    if let Some(path) = options.output_path.as_ref() {
+        if !path.exists() && options.fix_missing_dirs {
+            std::fs::create_dir_all(path).expect("Failed to create output directory.");
+        }
+    }
+
     let target_platform = crate::downloader::detect_platform(&target_url);
 
     match target_platform {
