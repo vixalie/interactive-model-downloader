@@ -152,10 +152,10 @@ impl Configuration {
 
 pub async fn check_civitai_key_exists() -> bool {
     let config = CONFIGURATION.read().await;
-    config.civitai_key.is_some()
+    config.civitai.api_key.is_some()
 }
 
 pub async fn check_huggingface_key_exists() -> bool {
     let config = CONFIGURATION.read().await;
-    config.huggingface_key.is_some()
+    config.huggingface.api_key.is_some()
 }

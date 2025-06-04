@@ -124,7 +124,7 @@ pub struct ModelVersion {
     pub index: u32,
     pub name: String,
     pub description: String,
-    pub created_at: UtcDateTime,
+    pub created_at: Option<UtcDateTime>,
     pub base_model: Option<String>,
     pub download_url: String,
     pub trained_words: Vec<String>,

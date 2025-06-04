@@ -35,7 +35,7 @@ pub async fn process_download_options(options: &DownloadOptions) {
     match target_platform {
         Some(crate::downloader::Platform::Civitai) => {
             println!("Downloading from Civitai...");
-            if !crate::configuration::check_civitai_key_exists() {
+            if !crate::configuration::check_civitai_key_exists().await {
                 println!("Civitai access key is not set. Please set it first.");
                 return;
             }
@@ -46,14 +46,14 @@ pub async fn process_download_options(options: &DownloadOptions) {
                         panic!("{}", error);
                     }
                 };
-            let civitai_client =
-                crate::downloader::make_client(&crate::downloader::Platform::Civitai)
-                    .await
-                    .expect("Failed to initialize client. ");
+            let civitai_client = crate::downloader::make_client()
+                .await
+                .expect("Failed to initialize client. ");
             crate::civitai::download_from_civitai(
                 &civitai_client,
-                model_id,
-                model_version_id,
+                model_id.parse::<u64>().expect("Failed to parse model id."),
+                model_version_id
+                    .map(|s| s.parse::<u64>().expect("Failed to parse model version id.")),
                 options.output_path.as_ref(),
             )
             .await
@@ -61,7 +61,7 @@ pub async fn process_download_options(options: &DownloadOptions) {
             println!("Download completed.");
         }
         Some(crate::downloader::Platform::HuggingFace) => {
-            if !crate::configuration::check_huggingface_key_exists() {
+            if !crate::configuration::check_huggingface_key_exists().await {
                 println!("HuggingFace API key is not set. Please set it first.");
                 return;
             }

@@ -4,10 +4,9 @@ use anyhow::anyhow;
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
-use tokio::{fs::File, io::AsyncWriteExt, task};
+use tokio::{fs::File, io::AsyncWriteExt};
 
 use super::model;
-use crate::downloader::{self, Platform};
 
 pub async fn download_single_model_file(
     client: &Client,
@@ -26,11 +25,14 @@ pub async fn download_single_model_file(
         None => env::current_dir()?,
     }
     .join(selected_file.name.clone());
-    let download_request = client.request(reqwest::Method::GET, selected_file.download_url.clone());
     let config = crate::configuration::CONFIGURATION.read().await;
-    download_request.bearer_auth(&config.civitai.api_key);
+    let civitai_auth_key = config.civitai.api_key.clone().unwrap_or_default();
+    let download_request = client
+        .request(reqwest::Method::GET, selected_file.download_url.clone())
+        .bearer_auth(civitai_auth_key);
+    let request = download_request.build()?;
 
-    let response = client.execute(download_request).await?;
+    let response = client.execute(request).await?;
 
     let file_legnth = response
         .content_length()
@@ -39,11 +41,10 @@ pub async fn download_single_model_file(
     let pb = ProgressBar::new(file_legnth);
     pb.set_style(
         ProgressStyle::default_bar()
-            .with_template("{spinner:.green} [{wide_bar:.cyan/blue}] {decimal_bytes}/{decimal_total_bytes} [{elapsed}] ETA:{eta}")
-            .unwrap()
+            .template("{spinner:.green} [{wide_bar:.cyan/blue}] {decimal_bytes}/{decimal_total_bytes} [{elapsed}] ETA:{eta}")?
             .progress_chars("=>-"),
     );
-    let mut file = File::create(output_path).await?;
+    let mut file = File::create(target_file_path).await?;
     let mut downloaded_size: u64 = 0;
     let mut download_stream = response.bytes_stream();
 

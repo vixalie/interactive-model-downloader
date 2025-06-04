@@ -74,10 +74,8 @@ pub async fn process_config_options(options: &ConfigOptions) {
     }
 }
 
-fn show_config(action: &ReadableContent) {
-    let configuration = crate::configuration::CONFIGURATION
-        .lock()
-        .expect("Failed to retreive configuration.");
+async fn show_config(action: &ReadableContent) {
+    let configuration = crate::configuration::CONFIGURATION.read().await;
     match action {
         ReadableContent::CivitaiKey => {
             if let Some(key) = &configuration.civitai.api_key {
@@ -108,7 +106,7 @@ fn show_config(action: &ReadableContent) {
 }
 
 async fn set_config(action: &WriteableContent) {
-    let mut configuration = crate::configuration::CONFIGURATION.read().await;
+    let mut configuration = crate::configuration::CONFIGURATION.write().await;
     match action {
         WriteableContent::CivitaiKey { key } => {
             configuration

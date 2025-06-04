@@ -1,4 +1,3 @@
-use hyper::{HeaderMap, header};
 use reqwest::{Client, ClientBuilder, Url};
 
 pub enum Platform {
@@ -14,17 +13,16 @@ pub fn detect_platform(url: &Url) -> Option<Platform> {
     }
 }
 
-pub async fn make_client(platform: &Platform) -> anyhow::Result<Client> {
+pub async fn make_client() -> anyhow::Result<Client> {
     let config = crate::configuration::CONFIGURATION.read().await;
     let proxy = config.proxy.get_proxy();
 
-    let client_builder = ClientBuilder::new();
-    client_builder.user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-    if let Some(proxy) = proxy {
-        client_builder.proxy(proxy);
+    let client_builder = ClientBuilder::new().user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+    let client_builder = if let Some(proxy) = proxy {
+        client_builder.proxy(proxy)
     } else {
-        client_builder.no_proxy();
-    }
+        client_builder.no_proxy()
+    };
     let client = client_builder.build()?;
 
     Ok(client)

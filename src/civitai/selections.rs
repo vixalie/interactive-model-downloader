@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use dialoguer::{MultiSelect, Select};
 
 use super::model;
@@ -37,7 +38,7 @@ pub fn select_model_version(
         .interact()
         .unwrap();
 
-    let selected_version_id = version_choices[interact_selection].1;
+    let selected_version_id = version_choices[interact_selection].0;
 
     model_meta
         .model_versions
@@ -69,13 +70,13 @@ pub fn select_model_version_files(
                 .and_then(|file| file.primary)
                 .unwrap_or_default()
         })
-        .collect::<&[bool]>();
+        .collect::<Vec<_>>();
 
     let selected_files = MultiSelect::new()
         .with_prompt("Select files to download: ")
         .max_length(7)
         .items(&file_choices)
-        .defaults(defaultes)
+        .defaults(defaultes.as_slice())
         .interact()
         .unwrap();
 

@@ -1,19 +1,19 @@
 use std::path::PathBuf;
 
 use anyhow::{anyhow, ensure};
-use reqwest::{Client, Method, Request, header};
+use reqwest::{Client, Method, header};
 use tokio::{fs::File, io::AsyncWriteExt};
 
 use super::model;
 
 pub async fn fetch_model_metadata(client: &Client, model_id: &str) -> anyhow::Result<model::Model> {
-    let config = crate::configuration::CONFIGURATION
-        .lock()
-        .map_err(|_| anyhow!("Failed to retreive configuration."))?;
+    let config = crate::configuration::CONFIGURATION.read().await;
     let model_meta_url = format!("https://civitai.com/api/v1/models/{model_id}");
-    let meta_request_builder = client.request(Method::GET, model_meta_url);
-    meta_request_builder.bearer_auth(&config.civitai.api_key);
-    meta_request_builder.header(header::ACCEPT, "application/json");
+    let civitai_auth_key = config.civitai.api_key.clone().unwrap_or_default();
+    let meta_request_builder = client
+        .request(Method::GET, model_meta_url)
+        .bearer_auth(civitai_auth_key)
+        .header(header::ACCEPT, "application/json");
     let request = meta_request_builder.build()?;
 
     let meta_response = client
@@ -38,8 +38,9 @@ pub async fn save_model_meta(model_meta: &model::Model) -> anyhow::Result<()> {
     }
 
     let meta_file_path = cache_dir.join(format!("{}.json", model_meta.id));
-    let meta_file = File::create(meta_file_path).await?;
-    serde_json::to_writer_pretty(meta_file, model_meta)?;
+    let mut meta_file = File::create(meta_file_path).await?;
+    let meta_content = serde_json::to_string_pretty(model_meta)?;
+    meta_file.write_all(meta_content.as_bytes()).await?;
 
     Ok(())
 }
@@ -60,6 +61,7 @@ pub async fn save_model_version_readme(
         .ok_or(anyhow!("The given model version does not exist."))?;
     let model_version_filename = PathBuf::from(model_version_meta.name.clone())
         .file_name()
+        .map(|s| s.to_string_lossy().to_string())
         .unwrap_or(format!("{}", model_version_meta.id));
     let meta_file_path = target_dir.join(format!("{model_version_filename}.md"));
 
@@ -75,7 +77,7 @@ pub async fn save_model_version_readme(
         )
     })?;
 
-    let meta_file = File::create(meta_file_path).await?;
+    let mut meta_file = File::create(meta_file_path).await?;
     meta_file
         .write_all(format!("# {}\n\n", model_meta.name).as_bytes())
         .await?;

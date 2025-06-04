@@ -51,15 +51,19 @@ pub async fn download_from_civitai(
             client,
             &selected_version,
             file_id,
-            destination_path.as_ref(),
+            destination_path.as_deref(),
         )
         .await
         .map_err(|e| anyhow!("Failed to download model file. {}", e))?;
     }
 
-    meta::save_model_version_readme(&model_meta, selected_version.id, destination_path.as_ref())
-        .await
-        .map_err(|e| anyhow!("Failed to save model version description file. {}", e))?;
+    meta::save_model_version_readme(
+        &model_meta,
+        selected_version.id,
+        destination_path.as_deref(),
+    )
+    .await
+    .map_err(|e| anyhow!("Failed to save model version description file. {}", e))?;
 
     Ok(())
 }
