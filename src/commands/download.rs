@@ -22,11 +22,11 @@ pub struct DownloadOptions {
 }
 
 pub async fn process_download_options(options: &DownloadOptions) {
-    let target_url = reqwest::Url::parse(&options.url).expect("The given url is invalid.");
+    let target_url = reqwest::Url::parse(&options.url).expect("The given url is invalid");
 
     if let Some(path) = options.output_path.as_ref() {
         if !path.exists() && options.fix_missing_dirs {
-            std::fs::create_dir_all(path).expect("Failed to create output directory.");
+            std::fs::create_dir_all(path).expect("Failed to create output directory");
         }
     }
 
@@ -48,16 +48,16 @@ pub async fn process_download_options(options: &DownloadOptions) {
                 };
             let civitai_client = crate::downloader::make_client()
                 .await
-                .expect("Failed to initialize client. ");
+                .expect("Failed to initialize client");
             crate::civitai::download_from_civitai(
                 &civitai_client,
-                model_id.parse::<u64>().expect("Failed to parse model id."),
+                model_id.parse::<u64>().expect("Failed to parse model id"),
                 model_version_id
-                    .map(|s| s.parse::<u64>().expect("Failed to parse model version id.")),
+                    .map(|s| s.parse::<u64>().expect("Failed to parse model version id")),
                 options.output_path.as_ref(),
             )
             .await
-            .expect("Failed to download model file(s). ");
+            .expect("Failed to download model file(s)");
             println!("Download completed.");
         }
         Some(crate::downloader::Platform::HuggingFace) => {
