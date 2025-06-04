@@ -2,17 +2,16 @@ use std::path::PathBuf;
 
 use clap::Args;
 
-#[derive(Args)]
+#[derive(Args, Default)]
 pub struct DownloadOptions {
     #[arg(help = "The model detail page URL.")]
     pub url: String,
     #[arg(
         short = 'o',
         long = "output",
-        help = "The directory stores the download files.",
-        default_value = "."
+        help = "The directory stores the download files."
     )]
-    pub output_path: PathBuf,
+    pub output_path: Option<PathBuf>,
     #[arg(
         long = "fix-missing",
         short = 'f',
