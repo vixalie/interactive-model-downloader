@@ -47,8 +47,12 @@ pub async fn save_model_meta(model_meta: &model::Model) -> anyhow::Result<()> {
 pub async fn save_model_version_readme(
     model_meta: &model::Model,
     version_id: u64,
+    destination_path: Option<&PathBuf>,
 ) -> anyhow::Result<()> {
-    let current_dir = std::env::current_dir()?;
+    let target_dir = match destination_path {
+        Some(path) => path.clone(),
+        None => std::env::current_dir()?,
+    };
     let model_version_meta = model_meta
         .model_versions
         .iter()
@@ -57,7 +61,7 @@ pub async fn save_model_version_readme(
     let model_version_filename = PathBuf::from(model_version_meta.name.clone())
         .file_name()
         .unwrap_or(format!("{}", model_version_meta.id));
-    let meta_file_path = current_dir.join(format!("{model_version_filename}.md"));
+    let meta_file_path = target_dir.join(format!("{model_version_filename}.md"));
 
     let model_description = html2md_rs::to_md::safe_from_html_to_md(model_meta.description.clone())
         .map_err(|e| anyhow!("Failed to convert model description to markdown, {}", e))?;

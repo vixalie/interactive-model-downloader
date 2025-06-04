@@ -44,9 +44,14 @@ pub async fn process_download_options(options: &DownloadOptions) {
                 crate::downloader::make_client(&crate::downloader::Platform::Civitai)
                     .await
                     .expect("Failed to initialize client. ");
-            crate::civitai::download_from_civitai(&civitai_client, model_id, model_version_id)
-                .await
-                .expect("Failed to download model file(s). ");
+            crate::civitai::download_from_civitai(
+                &civitai_client,
+                model_id,
+                model_version_id,
+                options.output_path.as_ref(),
+            )
+            .await
+            .expect("Failed to download model file(s). ");
             println!("Download completed.");
         }
         Some(crate::downloader::Platform::HuggingFace) => {

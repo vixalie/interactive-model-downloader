@@ -13,7 +13,7 @@ pub async fn download_single_model_file(
     client: &Client,
     model_version_meta: &model::ModelVersion,
     file_id: u64,
-    destination_path: Option<PathBuf>,
+    destination_path: Option<&PathBuf>,
 ) -> anyhow::Result<String> {
     let selected_file = model_version_meta
         .files
@@ -22,7 +22,7 @@ pub async fn download_single_model_file(
         .ok_or(anyhow!("Request model file is not found."))?;
     println!("Downloading file: {}", selected_file.name);
     let target_file_path = match destination_path {
-        Some(given_path) => given_path,
+        Some(given_path) => given_path.clone(),
         None => env::current_dir()?,
     }
     .join(selected_file.name.clone());

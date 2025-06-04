@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use anyhow::{anyhow, bail};
 use reqwest::Url;
 
@@ -31,6 +33,7 @@ pub async fn download_from_civitai(
     client: &reqwest::Client,
     model_id: u64,
     version_id: Option<u64>,
+    destination_path: Option<&PathBuf>,
 ) -> anyhow::Result<()> {
     println!("Fetching model metadata...");
     let model_meta = meta::fetch_model_metadata(client, &model_id.to_string()).await?;
@@ -44,12 +47,17 @@ pub async fn download_from_civitai(
 
     for file_id in selected_version_file_ids {
         println!("Downloading file(s)...");
-        download_task::download_single_model_file(client, &selected_version, file_id)
-            .await
-            .map_err(|e| anyhow!("Failed to download model file. {}", e))?;
+        download_task::download_single_model_file(
+            client,
+            &selected_version,
+            file_id,
+            destination_path.as_ref(),
+        )
+        .await
+        .map_err(|e| anyhow!("Failed to download model file. {}", e))?;
     }
 
-    meta::save_model_version_readme(&model_meta, selected_version.id)
+    meta::save_model_version_readme(&model_meta, selected_version.id, destination_path.as_ref())
         .await
         .map_err(|e| anyhow!("Failed to save model version description file. {}", e))?;
 
