@@ -13,9 +13,26 @@ futures-util = { version = "0.3.31", features = ["tokio-io"] }
 html2md-rs = "0.10.2"
 hyper = { version = "1.6.0", features = ["client", "http1", "http2"] }
 indicatif = { version = "0.17.11", features = ["tokio"] }
-reqwest = { version = "0.12.18", features = ["default", "multipart", "json", "gzip", "socks", "stream"] }
+reqwest = { version = "0.12.19", features = [
+  "default",
+  "multipart",
+  "json",
+  "gzip",
+  "socks",
+  "stream",
+  "rustls-tls-native-roots",
+] }
 serde = { version = "1.0.219", features = ["serde_derive", "derive"] }
 serde_json = "1.0.140"
-time = { version = "0.3.41", features = ["formatting", "local-offset", "macros", "parsing", "rand", "serde", "serde-human-readable"] }
+thiserror = "2.0.12"
+time = { version = "0.3.41", features = [
+  "formatting",
+  "local-offset",
+  "macros",
+  "parsing",
+  "rand",
+  "serde",
+  "serde-human-readable",
+] }
 tokio = { version = "1.45.1", features = ["full"] }
 toml = "0.8.22"
