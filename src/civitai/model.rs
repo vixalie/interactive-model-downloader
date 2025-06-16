@@ -304,12 +304,8 @@ impl TryFrom<&Value> for ModelVersion {
             |v: &Value| v.as_str().map(ToString::to_string),
             CivitaiParseError::FailedParsingModelVersionField
         )?;
-        let raw_words = get_field!(
-            value,
-            "trainedWords",
-            CivitaiParseError::FailedRetreivingModelVersionField
-        )?;
-        let trained_words = if let Value::Array(words) = raw_words {
+        let raw_words = value.get("trainedWords");
+        let trained_words = if let Some(Value::Array(words)) = raw_words {
             let mut ret_words = Vec::new();
             for word in words {
                 if let Value::String(word) = word {
@@ -318,9 +314,7 @@ impl TryFrom<&Value> for ModelVersion {
             }
             ret_words
         } else {
-            return Err(CivitaiParseError::FailedParsingModelVersionField(
-                "trainedWords".into(),
-            ));
+            Vec::new()
         };
         let raw_files =
             value
