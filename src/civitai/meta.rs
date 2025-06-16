@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use anyhow::{anyhow, ensure};
 use reqwest::{Client, Method, header};
+use serde_json::Value;
 use tokio::{fs::File, io::AsyncWriteExt};
 
 use super::model;
@@ -20,8 +21,23 @@ pub async fn fetch_model_metadata(client: &Client, model_id: &str) -> anyhow::Re
         .execute(request)
         .await
         .map_err(|e| anyhow!("Failed to retreive model meta info: {}", e.to_string()))?;
+    let raw_content = meta_response
+        .bytes()
+        .await
+        .map_err(|e| anyhow!("Failed to retreive model meta info: {}", e.to_string()))?;
+    let content = String::from_utf8_lossy(&raw_content);
 
-    let model_meta = meta_response.json::<model::Model>().await?;
+    // let model_meta = serde_json::from_str::<model::Model>(&content)
+    //     .map_err(|e| anyhow!("Failed to parse model meta info: {}", e.to_string()))?;
+
+    // let model_meta = meta_response
+    //     .json::<model::Model>()
+    //     .await
+    //     .map_err(|e| anyhow!("Failed to decode response: {}", e.to_string()))?;
+
+    let raw_model_meta = serde_json::from_str::<Value>(&content)
+        .map_err(|e| anyhow!("Failed to parse model meta info: {}", e.to_string()))?;
+    let model_meta = model::Model::try_from(&raw_model_meta)?;
 
     Ok(model_meta)
 }
@@ -30,7 +46,7 @@ pub async fn save_model_meta(model_meta: &model::Model) -> anyhow::Result<()> {
     let cache_dir = directories::UserDirs::new()
         .map(|dirs| dirs.home_dir().to_path_buf())
         .map(|home_dir| home_dir.join(".config").join("imd").join("cache"));
-    ensure!(cache_dir.is_none(), "Failed to get config directory.");
+    ensure!(cache_dir.is_some(), "Failed to get config directory.");
     let cache_dir = cache_dir.unwrap();
 
     if !cache_dir.exists() {
@@ -68,7 +84,10 @@ pub async fn save_model_version_readme(
     let model_description = html2md_rs::to_md::safe_from_html_to_md(model_meta.description.clone())
         .map_err(|e| anyhow!("Failed to convert model description to markdown, {}", e))?;
     let model_version_description = html2md_rs::to_md::safe_from_html_to_md(
-        model_version_meta.description.clone(),
+        model_version_meta
+            .description
+            .clone()
+            .unwrap_or("".to_string()),
     )
     .map_err(|e| {
         anyhow!(
