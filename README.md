@@ -26,7 +26,7 @@ The tool `imd` will be installed to cargo bin directory, you may run it directly
 
 ### Build executable
 
-Clone this repository and run `cargo build --release` command. The executable will be generated in `target/release/imd`, you need to copy it to a directory in your PATH.
+Clone this repository and run `cargo build --release` command. The executable will be generated in `target/release/imd`, you need to copy it to a directory in your `$PATH` variable.
 
 ## Usage
 
