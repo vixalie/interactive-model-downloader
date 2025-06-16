@@ -4,6 +4,7 @@ mod civitai;
 mod commands;
 mod configuration;
 mod downloader;
+mod errors;
 mod hugging_face;
 
 #[derive(Parser)]
