@@ -31,7 +31,7 @@ pub fn select_model_version(
     };
 
     let interact_selection = Select::new()
-        .with_prompt("Select the version of model to download: ")
+        .with_prompt("Select the version of model to download ")
         .max_length(7)
         .items(&version_choices)
         .default(default_choice_index)
@@ -73,7 +73,7 @@ pub fn select_model_version_files(
         .collect::<Vec<_>>();
 
     let selected_files = MultiSelect::new()
-        .with_prompt("Select files to download: ")
+        .with_prompt("Select files to download ")
         .max_length(7)
         .items(&file_choices)
         .defaults(defaultes.as_slice())
