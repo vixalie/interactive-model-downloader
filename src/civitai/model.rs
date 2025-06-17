@@ -364,7 +364,7 @@ pub struct Model {
     pub model_type: ModelType,
     pub tags: Vec<String>,
     pub mode: Option<ModelMode>,
-    pub creator: Creator,
+    pub creator: Option<Creator>,
     pub model_versions: Vec<ModelVersion>,
 }
 
@@ -410,8 +410,7 @@ impl TryFrom<&Value> for Model {
             .get("creator")
             .map(|v: &Value| serde_json::from_value::<Creator>(v.clone()))
             .transpose()
-            .map_err(|_| CivitaiParseError::FailedParsingModelField("creator".into()))?
-            .ok_or_else(|| CivitaiParseError::FailedParsingModelField("creator".into()))?;
+            .map_err(|_| CivitaiParseError::FailedParsingModelField("creator".into()))?;
         let raw_tags = get_field!(value, "tags", CivitaiParseError::FailedRetreivingModelField)?;
         let tags = if let Value::Array(tags) = raw_tags {
             let mut ret_tags = Vec::new();
