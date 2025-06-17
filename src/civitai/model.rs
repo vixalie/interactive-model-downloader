@@ -3,6 +3,23 @@ use serde_json::Value;
 
 use crate::errors::CivitaiParseError;
 
+macro_rules! match_enum_variants {
+    ($enum_type:ident { $($str_val:expr => $variant:ident),* }, $error_variant:path) => {
+        impl TryFrom<&Value> for $enum_type {
+            type Error = CivitaiParseError;
+
+            fn try_from(value: &Value) -> Result<Self, Self::Error> {
+                match value.as_str() {
+                    $(
+                        Some(s) if s.eq_ignore_ascii_case($str_val) => Ok($enum_type::$variant),
+                    )*
+                    _ => Err($error_variant)
+                }
+            }
+        }
+    };
+}
+
 macro_rules! get_field {
     ($value:expr, $field:expr, $error_variant:path) => {{
         $value
@@ -20,33 +37,45 @@ macro_rules! get_field {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ModelType {
+    /// Main Model
     Checkpoint,
+    /// aka: Embedding Model
     TextualInversion,
     Hypernetwork,
     AestheticGradient,
-    LORA,
+    /// LoRA Model
+    LoRA,
+    /// LyCORIS Model
+    LyCORIS,
+    DoRA,
     Controlnet,
     Poses,
+    VAE,
+    Upscaler,
+    Detection,
+    Wildcards,
+    Workflows,
 }
 
-impl TryFrom<&Value> for ModelType {
-    type Error = CivitaiParseError;
-
-    fn try_from(value: &Value) -> Result<Self, Self::Error> {
-        match value.as_str() {
-            Some(s) if s.eq_ignore_ascii_case("checkpoint") => Ok(ModelType::Checkpoint),
-            Some(s) if s.eq_ignore_ascii_case("textual_inversion") => {
-                Ok(ModelType::TextualInversion)
-            }
-            Some(s) if s.eq_ignore_ascii_case("hypernetwork") => Ok(ModelType::Hypernetwork),
-            Some(s) if s.eq_ignore_ascii_case("aesthetic_gradient") => {
-                Ok(ModelType::AestheticGradient)
-            }
-            Some(s) if s.eq_ignore_ascii_case("lora") => Ok(ModelType::LORA),
-            Some(s) if s.eq_ignore_ascii_case("poses") => Ok(ModelType::Poses),
-            _ => Err(CivitaiParseError::UnknownModelType),
-        }
-    }
+match_enum_variants! {
+    ModelType {
+        "checkpoint" => Checkpoint,
+        "textual_inversion" => TextualInversion,
+        "textualinversion" => TextualInversion,
+        "hypernetwork" => Hypernetwork,
+        "aesthetic_gradient" => AestheticGradient,
+        "lora" => LoRA,
+        "locon" => LyCORIS,
+        "dora" => DoRA,
+        "controlnet" => Controlnet,
+        "poses" => Poses,
+        "vae" => VAE,
+        "upscaler" => Upscaler,
+        "detection" => Detection,
+        "wildcards" => Wildcards,
+        "workflows" => Workflows
+    },
+    CivitaiParseError::UnknownModelType
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -56,16 +85,12 @@ pub enum ModelMode {
     TakeDown,
 }
 
-impl TryFrom<&Value> for ModelMode {
-    type Error = CivitaiParseError;
-
-    fn try_from(value: &Value) -> Result<Self, Self::Error> {
-        match value.as_str() {
-            Some(s) if s.eq_ignore_ascii_case("archived") => Ok(ModelMode::Archived),
-            Some(s) if s.eq_ignore_ascii_case("takedown") => Ok(ModelMode::TakeDown),
-            _ => Err(CivitaiParseError::UnknownModelMode),
-        }
-    }
+match_enum_variants! {
+    ModelMode {
+        "archived" => Archived,
+        "takedown" => TakeDown
+    },
+    CivitaiParseError::UnknownModelMode
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
