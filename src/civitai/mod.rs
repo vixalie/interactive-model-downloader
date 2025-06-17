@@ -44,10 +44,17 @@ pub async fn download_from_civitai(
         .map_err(|e| anyhow!("Failed to confirm model version. {}", e))?;
     let selected_version_file_ids = selections::select_model_version_files(&selected_version)
         .map_err(|e| anyhow!("Failed to comfirm model version files. {}", e))?;
+    let primary_file_id = selected_version
+        .files
+        .iter()
+        .find(|f| f.primary.unwrap_or_default())
+        .map(|f| f.id)
+        .unwrap_or(selected_version.files[0].id);
+    let mut target_meta_filename = String::new();
 
     for file_id in selected_version_file_ids {
         println!("Downloading file(s)...");
-        download_task::download_single_model_file(
+        let model_file_name = download_task::download_single_model_file(
             client,
             &selected_version,
             file_id,
@@ -55,12 +62,16 @@ pub async fn download_from_civitai(
         )
         .await
         .map_err(|e| anyhow!("Failed to download model file. {}", e))?;
+        if file_id == primary_file_id {
+            target_meta_filename = model_file_name;
+        }
     }
 
     meta::save_model_version_readme(
         &model_meta,
         selected_version.id,
         destination_path.as_deref(),
+        target_meta_filename,
     )
     .await
     .map_err(|e| anyhow!("Failed to save model version description file. {}", e))?;

@@ -65,6 +65,7 @@ pub async fn save_model_version_readme(
     model_meta: &model::Model,
     version_id: u64,
     destination_path: Option<&PathBuf>,
+    meta_filename: String,
 ) -> anyhow::Result<()> {
     let target_dir = match destination_path {
         Some(path) => path.clone(),
@@ -75,11 +76,9 @@ pub async fn save_model_version_readme(
         .iter()
         .find(|v| v.id == version_id)
         .ok_or(anyhow!("The given model version does not exist."))?;
-    let model_version_filename = PathBuf::from(model_version_meta.name.clone())
-        .file_name()
-        .map(|s| s.to_string_lossy().to_string())
-        .unwrap_or(format!("{}", model_version_meta.id));
-    let meta_file_path = target_dir.join(format!("{model_version_filename}.md"));
+    let filename = PathBuf::from(meta_filename);
+    let basename = filename.file_stem().unwrap_or_default();
+    let meta_file_path = target_dir.join(format!("{}.md", basename.to_string_lossy()));
 
     let model_description = html2md_rs::to_md::safe_from_html_to_md(model_meta.description.clone())
         .map_err(|e| anyhow!("Failed to convert model description to markdown, {}", e))?;
