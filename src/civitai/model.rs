@@ -100,94 +100,6 @@ pub struct Creator {
     pub image: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ModelStats {
-    pub download_count: u64,
-    pub favorite_coung: u64,
-    pub comment_coung: u64,
-    pub rating_count: u64,
-    pub rating: f32,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum ModelFileFloatingPoints {
-    FP16,
-    FP32,
-}
-
-impl TryFrom<&Value> for ModelFileFloatingPoints {
-    type Error = crate::errors::CivitaiParseError;
-
-    fn try_from(value: &Value) -> Result<Self, Self::Error> {
-        match value.as_str() {
-            Some(s) if s.eq_ignore_ascii_case("fp16") => Ok(ModelFileFloatingPoints::FP16),
-            Some(s) if s.eq_ignore_ascii_case("fp32") => Ok(ModelFileFloatingPoints::FP32),
-            _ => Err(CivitaiParseError::UnknownFloatPoint),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum ModelSize {
-    Full,
-    Pruned,
-}
-
-impl TryFrom<&Value> for ModelSize {
-    type Error = crate::errors::CivitaiParseError;
-
-    fn try_from(value: &Value) -> Result<Self, Self::Error> {
-        match value.as_str() {
-            Some(s) if s.eq_ignore_ascii_case("full") => Ok(ModelSize::Full),
-            Some(s) if s.eq_ignore_ascii_case("pruned") => Ok(ModelSize::Pruned),
-            _ => Err(CivitaiParseError::UnknownModelSize),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum ModelFileFormat {
-    SafeTensor,
-    PickleTensor,
-    Other,
-}
-
-impl From<&Value> for ModelFileFormat {
-    fn from(value: &Value) -> Self {
-        match value.as_str() {
-            Some(s) if s.eq_ignore_ascii_case("safetensor") => ModelFileFormat::SafeTensor,
-            Some(s) if s.eq_ignore_ascii_case("pickletensor") => ModelFileFormat::PickleTensor,
-            _ => ModelFileFormat::Other,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", default)]
-pub struct ModelVersionFileMeta {
-    pub fp: Option<ModelFileFloatingPoints>,
-    pub size: Option<ModelSize>,
-    pub format: Option<ModelFileFormat>,
-}
-
-impl TryFrom<&Value> for ModelVersionFileMeta {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &Value) -> Result<Self, Self::Error> {
-        let fp = value
-            .get("fp")
-            .map(ModelFileFloatingPoints::try_from)
-            .transpose()?;
-        let size = value.get("size").map(ModelSize::try_from).transpose()?;
-        let format = value.get("format").map(ModelFileFormat::from);
-        Ok(ModelVersionFileMeta { fp, size, format })
-    }
-}
-
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ModelVersionFileHashes {
@@ -222,7 +134,6 @@ pub struct ModelVersionFile {
     pub size_kb: f64,
     pub name: String,
     pub primary: Option<bool>,
-    pub metadata: ModelVersionFileMeta,
     pub hashes: ModelVersionFileHashes,
     pub download_url: String,
 }
@@ -250,13 +161,6 @@ impl TryFrom<&Value> for ModelVersionFile {
             CivitaiParseError::FailedParsingModelVersionFileField
         )?;
         let primary = get_field!(value, "primary", |v: &Value| v.as_bool());
-        let meta = value
-            .get("metadata")
-            .map(ModelVersionFileMeta::try_from)
-            .transpose()?
-            .ok_or(CivitaiParseError::FailedParsingModelVersionFileField(
-                "metadata".into(),
-            ))?;
         let hashes = value
             .get("hashes")
             .map(ModelVersionFileHashes::try_from)
@@ -275,7 +179,6 @@ impl TryFrom<&Value> for ModelVersionFile {
             size_kb: file_size,
             name,
             primary,
-            metadata: meta,
             hashes,
             download_url,
         })

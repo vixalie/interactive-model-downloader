@@ -2,10 +2,6 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum CivitaiParseError {
-    #[error("Unknown float point type")]
-    UnknownFloatPoint,
-    #[error("Unknown model size")]
-    UnknownModelSize,
     #[error("Unknown model mode")]
     UnknownModelMode,
     #[error("Unknown model type")]
