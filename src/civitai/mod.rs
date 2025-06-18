@@ -43,7 +43,7 @@ pub async fn download_from_civitai(
     let selected_version = selections::select_model_version(&model_meta, version_id)
         .map_err(|e| anyhow!("Failed to confirm model version. {}", e))?;
     let selected_version_file_ids = selections::select_model_version_files(&selected_version)
-        .map_err(|e| anyhow!("Failed to comfirm model version files. {}", e))?;
+        .map_err(|e| anyhow!("Failed to confirm model version files. {}", e))?;
     let primary_file_id = selected_version
         .files
         .iter()
