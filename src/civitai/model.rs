@@ -55,6 +55,7 @@ pub enum ModelType {
     Detection,
     Wildcards,
     Workflows,
+    Other,
 }
 
 match_enum_variants! {
@@ -73,7 +74,8 @@ match_enum_variants! {
         "upscaler" => Upscaler,
         "detection" => Detection,
         "wildcards" => Wildcards,
-        "workflows" => Workflows
+        "workflows" => Workflows,
+        "other" => Other
     },
     CivitaiParseError::UnknownModelType
 }
