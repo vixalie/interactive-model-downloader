@@ -1,19 +1,19 @@
 [package]
 name = "imd"
-version = "0.1.2"
+version = "0.1.5"
 edition = "2024"
 rust-version = "1.87.0"
 
 [dependencies]
 anyhow = "1.0.98"
-clap = { version = "4.5.39", features = ["derive"] }
+clap = { version = "4.5.40", features = ["derive"] }
 dialoguer = "0.11.0"
 directories = "6.0.0"
 futures-util = { version = "0.3.31", features = ["tokio-io"] }
 html2md = "0.2.15"
 hyper = { version = "1.6.0", features = ["client", "http1", "http2"] }
 indicatif = { version = "0.17.11", features = ["tokio"] }
-reqwest = { version = "0.12.19", features = [
+reqwest = { version = "0.12.20", features = [
   "default",
   "multipart",
   "json",
@@ -24,6 +24,7 @@ reqwest = { version = "0.12.19", features = [
 ] }
 serde = { version = "1.0.219", features = ["serde_derive", "derive"] }
 serde_json = "1.0.140"
+sled = { version = "0.34.7", features = ["compression", "mutex"] }
 thiserror = "2.0.12"
 time = { version = "0.3.41", features = [
   "formatting",
@@ -35,4 +36,4 @@ time = { version = "0.3.41", features = [
   "serde-human-readable",
 ] }
 tokio = { version = "1.45.1", features = ["full"] }
-toml = "0.8.22"
+toml = "0.8.23"
