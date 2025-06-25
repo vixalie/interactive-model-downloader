@@ -8,6 +8,8 @@ mod meta;
 mod model;
 mod selections;
 
+pub use model::*;
+
 pub fn try_parse_civitai_model_url(url: &Url) -> anyhow::Result<(String, Option<String>)> {
     let path_segments = url.path_segments();
     let model_id = if let Some(mut segments) = path_segments {
