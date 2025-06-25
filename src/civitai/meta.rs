@@ -27,14 +27,6 @@ pub async fn fetch_model_metadata(client: &Client, model_id: &str) -> anyhow::Re
         .map_err(|e| anyhow!("Failed to retreive model meta info: {}", e.to_string()))?;
     let content = String::from_utf8_lossy(&raw_content);
 
-    // let model_meta = serde_json::from_str::<model::Model>(&content)
-    //     .map_err(|e| anyhow!("Failed to parse model meta info: {}", e.to_string()))?;
-
-    // let model_meta = meta_response
-    //     .json::<model::Model>()
-    //     .await
-    //     .map_err(|e| anyhow!("Failed to decode response: {}", e.to_string()))?;
-
     let raw_model_meta = serde_json::from_str::<Value>(&content)
         .map_err(|e| anyhow!("Failed to parse model meta info: {}", e.to_string()))?;
     let model_meta = model::Model::try_from(&raw_model_meta)?;
@@ -80,20 +72,13 @@ pub async fn save_model_version_readme(
     let basename = filename.file_stem().unwrap_or_default();
     let meta_file_path = target_dir.join(format!("{}.md", basename.to_string_lossy()));
 
-    let model_description = html2md_rs::to_md::safe_from_html_to_md(model_meta.description.clone())
-        .map_err(|e| anyhow!("Failed to convert model description to markdown, {}", e))?;
-    let model_version_description = html2md_rs::to_md::safe_from_html_to_md(
-        model_version_meta
+    let model_description = html2md::parse_html(&model_meta.description.clone());
+    let model_version_description = html2md::parse_html(
+        &model_version_meta
             .description
             .clone()
             .unwrap_or("".to_string()),
-    )
-    .map_err(|e| {
-        anyhow!(
-            "Failed to convert model version description to markdown, {}",
-            e
-        )
-    })?;
+    );
 
     let mut meta_file = File::create(meta_file_path).await?;
     meta_file
