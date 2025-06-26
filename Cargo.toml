@@ -12,6 +12,7 @@ directories = "6.0.0"
 futures-util = { version = "0.3.31", features = ["tokio-io"] }
 html2md = "0.2.15"
 hyper = { version = "1.6.0", features = ["client", "http1", "http2"] }
+image = "0.25.6"
 indicatif = { version = "0.17.11", features = ["tokio"] }
 reqwest = { version = "0.12.20", features = [
   "default",
