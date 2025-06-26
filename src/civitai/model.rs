@@ -271,6 +271,10 @@ impl ModelImage {
         self.0["url"].as_str().map(String::from).unwrap()
     }
 
+    pub fn media_type(&self) -> String {
+        self.0["type"].as_str().map(String::from).unwrap()
+    }
+
     pub fn hash(&self) -> Option<String> {
         self.0["hash"].as_str().map(String::from)
     }
