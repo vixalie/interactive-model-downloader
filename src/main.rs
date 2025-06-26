@@ -1,5 +1,6 @@
 use clap::Parser;
 
+mod cache_db;
 mod civitai;
 mod commands;
 mod configuration;
