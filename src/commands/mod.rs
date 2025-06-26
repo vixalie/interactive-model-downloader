@@ -15,6 +15,8 @@ pub enum Commands {
     Download(download::DownloadOptions),
     #[command(about = "Renew locally saved model meta information.")]
     Renew,
+    #[command(about = "Scan all models in current directory, complete model meta information.")]
+    Scan,
     #[command(about = "List all models in current directory.")]
     List,
 }
