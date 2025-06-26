@@ -93,7 +93,7 @@ pub async fn download_model_version_cover_image(
         .find(|img| !img.media_type().eq_ignore_ascii_case("video"));
 
     if cover_image.is_none() {
-        bail!("Model version doesn't have any cover image");
+        return Ok(None);
     }
     let cover_image = cover_image.unwrap();
 
