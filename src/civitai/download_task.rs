@@ -15,10 +15,10 @@ pub async fn download_single_model_file(
     destination_path: Option<&PathBuf>,
 ) -> anyhow::Result<String> {
     let selected_file = model_version_meta
-        .files
+        .files()
         .iter()
         .find(|f| f.id == file_id)
-        .ok_or(anyhow!("Request model file is not found."))?;
+        .context("Request model file is not found.")?;
     println!("Downloading file: {}", selected_file.name);
     let target_file_path = match destination_path {
         Some(given_path) => given_path.clone(),
