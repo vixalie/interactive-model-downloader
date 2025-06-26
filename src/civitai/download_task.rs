@@ -10,7 +10,10 @@ use futures_util::StreamExt;
 use image::ImageReader;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
-use tokio::{fs::File, io::AsyncWriteExt};
+use tokio::{
+    fs::File,
+    io::{AsyncReadExt, AsyncWriteExt, BufReader},
+};
 
 use super::model;
 
@@ -21,16 +24,16 @@ pub async fn download_single_model_file(
     destination_path: Option<&PathBuf>,
 ) -> anyhow::Result<String> {
     let selected_file = model_version_meta
-        .files()
-        .iter()
+        .files()?
+        .into_iter()
         .find(|f| f.id == file_id)
-        .context("Request model file is not found.")?;
-    println!("Downloading file: {}", selected_file.name);
+        .ok_or(anyhow!("Request model file is not found"))?;
+    println!("Downloading file: {}", selected_file.name());
     let target_file_path = match destination_path {
         Some(given_path) => given_path.clone(),
         None => env::current_dir()?,
     }
-    .join(selected_file.name.clone());
+    .join(selected_file.name());
     let config = crate::configuration::CONFIGURATION.read().await;
     let civitai_auth_key = config.civitai.api_key.clone().unwrap_or_default();
     let download_request = client
@@ -66,6 +69,27 @@ pub async fn download_single_model_file(
         "File {} download completed.",
         selected_file.name.clone()
     ));
+
+    // Run crc32 check
+    if let Some(control_value_str) = selected_file.crc32() {
+        let control_value = u32::from_str_radix(&control_value_str, 16)?;
+        let mut check_file = File::open(target_file_path).await?;
+        let mut reader = BufReader::new(&mut check_file);
+        let mut hasher = crc32fast::Hasher::new();
+        let mut check_buffer = [0u8; 512 * 1024];
+
+        loop {
+            let read_size = reader.read(&mut check_buffer).await?;
+            if read_size == 0 {
+                break;
+            }
+            hasher.update(&check_buffer[0..read_size]);
+        }
+        let checksum = hasher.finalize();
+        if checksum == control_value {
+            println!("CRC32 check passed.");
+        }
+    }
 
     Ok(selected_file.name.clone())
 }
