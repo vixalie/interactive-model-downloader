@@ -88,6 +88,8 @@ pub async fn download_single_model_file(
         let checksum = hasher.finalize();
         if checksum == control_value {
             println!("CRC32 check passed.");
+        } else {
+            println!("CRC32 check failed. Maybe need to redownload.");
         }
     }
 
