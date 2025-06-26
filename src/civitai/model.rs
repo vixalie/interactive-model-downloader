@@ -227,8 +227,16 @@ impl ModelVersionFile {
         self.0["sizeKB"].as_f64().unwrap()
     }
 
+    pub fn name(&self) -> String {
+        self.0["name"].as_str().map(String::from).unwrap()
+    }
+
     pub fn download_url(&self) -> String {
         self.0["downloadUrl"].as_str().map(String::from).unwrap()
+    }
+
+    pub fn is_primary(&self) -> Option<bool> {
+        self.0["primary"].as_bool()
     }
 
     pub fn blake3_hash(&self) -> Option<String> {
