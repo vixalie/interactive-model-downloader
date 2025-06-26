@@ -20,7 +20,7 @@ impl From<(u64, String)> for DownloadChoice {
 pub fn select_model_version(
     model_meta: &model::Model,
     default_choice_id: Option<u64>,
-) -> anyhow::Result<model::ModelVersionBreif> {
+) -> anyhow::Result<u64> {
     let version_choices = model_meta
         .versions()?
         .iter()
@@ -46,13 +46,7 @@ pub fn select_model_version(
         .unwrap();
 
     let selected_version_id = version_choices[interact_selection].0;
-
-    model_meta
-        .model_versions
-        .iter()
-        .find(|version| version.id == selected_version_id)
-        .cloned()
-        .ok_or(anyhow!("Failed to locate selected model version."))
+    Ok(selected_version_id)
 }
 
 pub fn select_model_version_files(
