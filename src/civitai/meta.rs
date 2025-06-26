@@ -157,6 +157,7 @@ pub async fn save_model_version_readme(
     model: &model::Model,
     model_version: &model::ModelVersion,
     community_images: &[model::ModelCommunityImage],
+    cover_image_filename: Option<String>,
     destination_path: Option<&PathBuf>,
     meta_filename: String,
 ) -> Result<()> {
@@ -177,8 +178,15 @@ pub async fn save_model_version_readme(
         .await?;
     meta_file.write_all(model_description.as_bytes()).await?;
     meta_file
-        .write_all(format!("\n\n## Version: {}\n\n", model_version_meta.name))
+        .write_all(format!("\n\n## Version: {}\n\n", model_version.name()))
         .await?;
+
+    if let Some(image) = cover_image_filename {
+        meta_file
+            .write_all(format!("![cover](./{image})\n\n"))
+            .await?;
+    }
+
     if let Some(description) = model_version_description {
         meta_file.write_all(description).await?;
     }
