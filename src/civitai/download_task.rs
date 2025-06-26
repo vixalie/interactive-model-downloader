@@ -71,27 +71,48 @@ pub async fn download_single_model_file(
     ));
 
     // Run crc32 check
+    let mut check_file = File::open(target_file_path).await?;
+    let mut reader = BufReader::new(&mut check_file);
+    let mut crc32_hasher = crc32fast::Hasher::new();
+    let mut blake3_hasher = blake3::Hasher::new();
+    let mut data_buffer = [0u8; 512 * 1024];
+
+    loop {
+        let read_size = reader.read(&mut data_buffer).await?;
+        if read_size == 0 {
+            break;
+        }
+        crc32_hasher.update(&data_buffer[0..read_size]);
+        blake3_hasher.update(&data_buffer[0..read_size]);
+    }
+    let crc32_checksum = crc32_hasher.finalize();
+    let blake3_checksum = blake3_hasher.finalize();
+
+    // Check crc32
     if let Some(control_value_str) = selected_file.crc32() {
         let control_value = u32::from_str_radix(&control_value_str, 16)?;
-        let mut check_file = File::open(target_file_path).await?;
-        let mut reader = BufReader::new(&mut check_file);
-        let mut hasher = crc32fast::Hasher::new();
-        let mut check_buffer = [0u8; 512 * 1024];
-
-        loop {
-            let read_size = reader.read(&mut check_buffer).await?;
-            if read_size == 0 {
-                break;
-            }
-            hasher.update(&check_buffer[0..read_size]);
-        }
-        let checksum = hasher.finalize();
-        if checksum == control_value {
+        if crc32_checksum == control_value {
             println!("CRC32 check passed.");
         } else {
             println!("CRC32 check failed. Maybe need to redownload.");
         }
     }
+
+    // Record model blake3 hash
+    let model_file_name = target_file_path
+        .file_stem()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap();
+    let hash_file_name = format!("{model_file_name}.blake3");
+    let hash_file_path = match destination_path {
+        Some(given_path) => given_path.clone(),
+        None => env::current_dir()?,
+    }
+    .join(hash_file_name);
+    let mut hash_file = File::open(hash_file_path).await?;
+    let blake3_str = blake3_checksum.to_hex().to_string().to_uppercase();
+    hash_file.write_all(blake3_str.as_bytes()).await?;
+    hash_file.flush().await?;
 
     Ok(selected_file.name.clone())
 }
