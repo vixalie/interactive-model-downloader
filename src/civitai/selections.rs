@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use dialoguer::{MultiSelect, Select};
 
-use super::model;
+use super::{ModelVersionBrief, ModelVersionFile, model};
 
 struct DownloadChoice(u64, String);
 
@@ -11,14 +11,21 @@ impl ToString for DownloadChoice {
     }
 }
 
+impl From<(u64, String)> for DownloadChoice {
+    fn from(value: (u64, String)) -> Self {
+        Self(value.0, value.1)
+    }
+}
+
 pub fn select_model_version(
     model_meta: &model::Model,
     default_choice_id: Option<u64>,
-) -> anyhow::Result<model::ModelVersion> {
+) -> anyhow::Result<model::ModelVersionBreif> {
     let version_choices = model_meta
-        .model_versions
+        .versions()?
         .iter()
-        .map(|version| DownloadChoice(version.id, version.name.clone()))
+        .map(ModelVersionBrief::choice)
+        .map(DownloadChoice::from)
         .collect::<Vec<_>>();
 
     let default_choice_index = if let Some(default_choice) = default_choice_id {
@@ -52,9 +59,10 @@ pub fn select_model_version_files(
     selected_version: &model::ModelVersion,
 ) -> anyhow::Result<Vec<u64>> {
     let file_choices = selected_version
-        .files
+        .files()?
         .iter()
-        .map(|file| DownloadChoice(file.id, file.name.clone()))
+        .map(ModelVersionFile::choice)
+        .map(DownloadChoice::from)
         .collect::<Vec<_>>();
 
     if file_choices.len() == 1 {
