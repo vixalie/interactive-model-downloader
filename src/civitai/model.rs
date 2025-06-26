@@ -84,7 +84,7 @@ impl Model {
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
-        serde_json::to_vec(self.0).unwrap()
+        serde_json::to_vec(&self.0).unwrap()
     }
 }
 
@@ -234,6 +234,10 @@ impl ModelVersionFile {
             .as_str()
             .map(String::from)
             .map(str::to_lowercase)
+    }
+
+    pub fn choice(&self) -> (u64, String) {
+        (self.id(), self.name())
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
