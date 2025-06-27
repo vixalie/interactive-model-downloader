@@ -1,6 +1,10 @@
-use std::path::PathBuf;
+use std::{
+    fs::File,
+    io::BufReader,
+    path::{Path, PathBuf},
+};
 
-use anyhow::{Context, Result, anyhow, ensure};
+use anyhow::{Context, Ok, Result, anyhow, bail, ensure};
 use reqwest::{Client, Method, header};
 use serde_json::Value;
 use tokio::{fs::File, io::AsyncWriteExt};
@@ -44,6 +48,38 @@ pub async fn fetch_model_version_meta(
 ) -> Result<model::ModelVersion> {
     let config = crate::configuration::CONFIGURATION.read().await;
     let model_meta_url = format!("https://civitai.com/api/v1/model-versions/{version_id}");
+    let civitai_auth_key = config.civitai.api_key.clone().unwrap_or_default();
+    let meta_request_builder = client
+        .request(Method::GET, model_meta_url)
+        .bearer_auth(civitai_auth_key)
+        .header(header::ACCEPT, "application/json");
+    let request = meta_request_builder.build()?;
+
+    let meta_response = client
+        .execute(request)
+        .await
+        .context("Failed to retreive model version meta info")?;
+    let raw_content = meta_response
+        .bytes()
+        .await
+        .context("Failed to retreive model version meta info")?;
+    let content = String::from_utf8_lossy(&raw_content);
+
+    let raw_model_version_meta = serde_json::from_str::<Value>(&content)
+        .context("Failed to parse model version meta info")?;
+    let model_version_meta = model::ModelVersion::try_from(&raw_model_version_meta)?;
+
+    cache_db::store_civitai_model_version_meta(&model_version_meta)?;
+
+    Ok(model_version_meta)
+}
+
+pub async fn fetch_model_version_meta_by_blake3(
+    client: &Client,
+    model_hash: &str,
+) -> Result<model::ModelVersion> {
+    let config = crate::configuration::CONFIGURATION.read().await;
+    let model_meta_url = format!("https://civitai.com/api/v1/model-versions/by-hash/{model_hash}");
     let civitai_auth_key = config.civitai.api_key.clone().unwrap_or_default();
     let meta_request_builder = client
         .request(Method::GET, model_meta_url)
@@ -219,4 +255,28 @@ pub async fn save_model_version_readme(
     meta_file.flush().await?;
 
     Ok(())
+}
+
+pub fn blake3_hash<P: AsRef<Path>>(target_file: P) -> Result<String> {
+    let target_file_path = target_file.as_ref();
+    if !target_file_path.exists() {
+        bail!("Request file {} not exists", target_file_path.display());
+    }
+
+    let mut file = File::open(target_file_path)?;
+    let mut reader = BufReader::new(&mut file);
+    let mut hasher = blake3::Hasher::new();
+    let mut buffer = [0u8; 512 * 1024];
+
+    loop {
+        let read_size = reader.read(&mut buffer)?;
+        if read_size == 0 {
+            break;
+        }
+        hasher.update(&buffer[0..read_size]);
+    }
+    let hash = hasher.finalize();
+    let hash_str = hash.to_hex().to_string().to_uppercase();
+
+    Ok(hash_str)
 }
