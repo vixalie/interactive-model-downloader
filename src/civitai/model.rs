@@ -289,43 +289,43 @@ impl ModelImage {
 }
 
 impl ImageMeta for ModelImage {
-    pub fn sampler(&self) -> Option<String> {
+    fn sampler(&self) -> Option<String> {
         self.0["meta"]["sampler"].as_str().map(String::from)
     }
 
-    pub fn scheduler(&self) -> Option<String> {
+    fn scheduler(&self) -> Option<String> {
         self.0["meta"]["scheduler"].as_str().map(String::from)
     }
 
-    pub fn seed(&self) -> Option<u64> {
+    fn seed(&self) -> Option<u64> {
         self.0["meta"]["seed"].as_u64()
     }
 
-    pub fn steps(&self) -> Option<u64> {
+    fn steps(&self) -> Option<u64> {
         self.0["meta"]["steps"].as_u64()
     }
 
-    pub fn cfg_scale(&self) -> Option<f64> {
+    fn cfg_scale(&self) -> Option<f64> {
         self.0["meta"]["cfgScale"].as_f64()
     }
 
-    pub fn denoising_strength(&self) -> Option<f64> {
+    fn denoising_strength(&self) -> Option<f64> {
         self.0["meta"]["Denoising strength"].as_f64()
     }
 
-    pub fn use_model(&self) -> Option<String> {
+    fn use_model(&self) -> Option<String> {
         self.0["meta"]["Model"].as_str().map(String::from)
     }
 
-    pub fn use_model_version(&self) -> Option<String> {
+    fn use_model_version(&self) -> Option<String> {
         self.0["meta"]["Version"].as_str().map(String::from)
     }
 
-    pub fn positive_prompt(&self) -> Option<String> {
+    fn positive_prompt(&self) -> Option<String> {
         self.0["meta"]["prompt"].as_str().map(String::from)
     }
 
-    pub fn negative_prompt(&self) -> Option<String> {
+    fn negative_prompt(&self) -> Option<String> {
         self.0["meta"]["negativePrompt"].as_str().map(String::from)
     }
 }
@@ -362,43 +362,43 @@ impl ModelCommunityImage {
 }
 
 impl ImageMeta for ModelCommunityImage {
-    pub fn seed(&self) -> Option<u64> {
+    fn seed(&self) -> Option<u64> {
         self.0["meta"]["seed"].as_u64()
     }
 
-    pub fn sampler(&self) -> Option<String> {
+    fn sampler(&self) -> Option<String> {
         self.0["meta"]["sampler"].as_str().map(String::from)
     }
 
-    pub fn scheduler(&self) -> Option<String> {
+    fn scheduler(&self) -> Option<String> {
         self.0["meta"]["Schedule type"].as_str().map(String::from)
     }
 
-    pub fn steps(&self) -> Option<u64> {
+    fn steps(&self) -> Option<u64> {
         self.0["meta"]["steps"].as_u64()
     }
 
-    pub fn cfg_scale(&self) -> Option<f64> {
+    fn cfg_scale(&self) -> Option<f64> {
         self.0["meta"]["cfgScale"].as_f64()
     }
 
-    pub fn denoising_strength(&self) -> Option<f64> {
+    fn denoising_strength(&self) -> Option<f64> {
         self.0["meta"]["Denoising strength"].as_f64()
     }
 
-    pub fn use_model(&self) -> Option<String> {
+    fn use_model(&self) -> Option<String> {
         self.0["meta"]["Model"].as_str().map(String::from)
     }
 
-    pub fn ues_model_version(&self) -> Option<String> {
+    fn use_model_version(&self) -> Option<String> {
         self.0["meta"]["Version"].as_str().map(String::from)
     }
 
-    pub fn positive_prompt(&self) -> Option<String> {
+    fn positive_prompt(&self) -> Option<String> {
         self.0["meta"]["prompt"].as_str().map(String::from)
     }
 
-    pub fn negative_prompt(&self) -> Option<String> {
+    fn negative_prompt(&self) -> Option<String> {
         self.0["meta"]["negativePrompt"].as_str().map(String::from)
     }
 }
