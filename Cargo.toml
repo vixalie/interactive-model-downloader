@@ -2,7 +2,7 @@
 name = "imd"
 version = "0.1.5"
 edition = "2024"
-rust-version = "1.87.0"
+rust-version = "1.88.0"
 
 [dependencies]
 anyhow = "1.0.98"
