@@ -264,6 +264,12 @@ impl ModelVersionFile {
     pub fn to_bytes(&self) -> Vec<u8> {
         serde_json::to_vec(&self.0).unwrap()
     }
+
+    pub fn match_by_blake3(&self, blake3_str: &str) -> bool {
+        self.blake3_hash()
+            .map(|hash| hash.eq_ignore_ascii_case(blake3_str))
+            .unwrap_or_default()
+    }
 }
 
 impl ModelImage {
