@@ -127,53 +127,30 @@ pub fn fetch_civitai_model_community_images(
 struct CivitaiFileLocationRecord {
     pub model_id: u64,
     pub version_id: u64,
+    pub file_id: u64,
     pub locations: Vec<String>,
 }
 
 pub fn store_civitai_model_file_location<P: AsRef<Path>>(
-    model_version: &civitai::ModelVersion,
-    model_version_file: &civitai::ModelVersionFile,
+    model_id: u64,
+    version_id: u64,
+    file_id: u64,
+    blake3_hash: &str,
     file_location: P,
 ) -> Result<()> {
     let location = file_location.as_ref().canonicalize()?;
     let location_str = location.to_string_lossy().into_owned();
 
-    let file_id_key = format!(
-        "civitai:model:file:{}:{}:id:{}",
-        model_version.model_id(),
-        model_version.id(),
-        model_version_file.id()
-    );
-    let file_sha256_key = model_version_file
-        .sha256_hash()
-        .map(|hash| format!("civitai:model:file:sha256:{}", hash));
-    let file_blake3_key = model_version_file
-        .blake3_hash()
-        .map(|hash| format!("civitai:model:file:blake3:{}", hash));
+    let file_blake3_key = format!("civitai:model:file:blake3:{blake3_hash}");
 
     let new_record = CivitaiFileLocationRecord {
-        model_id: model_version.model_id(),
-        version_id: model_version.id(),
+        model_id,
+        version_id,
+        file_id,
         locations: vec![location_str],
     };
 
     let db = CACHE_DB.lock()?;
-    if let Ok(Some(record)) = db.get(&file_id_key) {
-        let mut record: CivitaiFileLocationRecord = serde_json::from_slice(&record)?;
-        record.locations.push(location_str);
-        db.insert(&file_id_key, serde_json::to_vec(&record)?)?;
-    } else {
-        db.insert(&file_id_key, serde_json::to_vec(&new_record)?)?;
-    }
-    if let Some(file_sha256_key) = file_sha256_key {
-        if let Ok(Some(record)) = db.get(&file_sha256_key) {
-            let mut record: CivitaiFileLocationRecord = serde_json::from_slice(&record)?;
-            record.locations.push(location_str);
-            db.insert(&file_sha256_key, serde_json::to_vec(&record)?)?;
-        } else {
-            db.insert(&file_sha256_key, serde_json::to_vec(&new_record)?)?;
-        }
-    }
     if let Some(file_blake3_key) = file_blake3_key {
         if let Ok(Some(record)) = db.get(&file_blake3_key) {
             let mut record: FileRecord = serde_json::from_slice(&record)?;
@@ -186,49 +163,6 @@ pub fn store_civitai_model_file_location<P: AsRef<Path>>(
     db.flush()?;
 
     Ok(())
-}
-
-pub fn retreive_civitai_model_locations_by_ids(
-    model_id: u64,
-    version_id: u64,
-    file_id: u64,
-) -> Result<Vec<PathBuf>> {
-    let location_key = format!(
-        "civitai:model:file:{}:{}:id:{}",
-        model_id, version_id, file_id
-    );
-    let db = CACHE_DB.lock()?;
-    let record = db.get(&location_key)?;
-    match record {
-        Some(raw_value) => {
-            let location_record: CivitaiFileLocationRecord = serde_json::from_slice(&raw_value)?;
-            let converted_locations: Vec<PathBuf> = location_record
-                .locations
-                .iter()
-                .map(|l| PathBuf::from(l))
-                .collect();
-            Ok(converted_locations)
-        }
-        None => Ok(None),
-    }
-}
-
-pub fn retreive_civitai_model_locations_by_sha256(hash: String) -> Result<Option<Vec<PathBuf>>> {
-    let location_key = format!("civitai:model:file:sha256:{}", hash);
-    let db = CACHE_DB.lock()?;
-    let record = db.get(&location_key)?;
-    match record {
-        Some(raw_value) => {
-            let location_record: CivitaiFileLocationRecord = serde_json::from_slice(&raw_value)?;
-            let converted_locations: Vec<PathBuf> = location_record
-                .locations
-                .iter()
-                .map(|l| PathBuf::from(l))
-                .collect();
-            Ok(Some(converted_locations))
-        }
-        None => Ok(None),
-    }
 }
 
 pub fn retreive_civitai_model_locations_by_blake3(hash: String) -> Result<Option<Vec<PathBuf>>> {
