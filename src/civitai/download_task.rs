@@ -118,19 +118,46 @@ pub async fn download_single_model_file(
     Ok(selected_file.name.clone())
 }
 
+pub enum ModelVersionFileNamePresent {
+    FileID(u64),
+    FileName(String),
+    PrimaryFile,
+}
+
 pub async fn download_model_version_cover_image(
     client: &Client,
     version_meta: &model::ModelVersion,
-    downloaded_file_id: u64,
+    file_present: ModelVersionFileNamePresent,
     destination_path: Option<&PathBuf>,
 ) -> anyhow::Result<Option<String>> {
-    let version_files = version_meta
-        .files()
-        .context("Fetch file list in model version")?;
-    let downloaded_file_name = version_files
-        .iter()
-        .find(|f| f.id() == downloaded_file_id)
-        .map(model::ModelVersionFile::name)
+    let file_name = match file_present {
+        ModelVersionFileNamePresent::FileID(file_id) => {
+            let version_files = version_meta
+                .files()
+                .context("Fetch file list in model version")?;
+            version_files
+                .iter()
+                .find(|f| f.id() == file_id)
+                .map(model::ModelVersionFile::name)
+        }
+        ModelVersionFileNamePresent::FileName(file_name) => {
+            let file_path = PathBuf::from(file_name);
+            file_path
+                .file_name()
+                .map(|p| p.to_string_lossy().into_owned())
+        }
+        ModelVersionFileNamePresent::PrimaryFile => {
+            let version_files = version_meta
+                .files()
+                .context("Fetch file list in model version")?;
+            version_files
+                .iter()
+                .find(|f| f.is_primary)
+                .map(model::ModelVersionFile::name)
+        }
+    };
+
+    let downloaded_file_name = file_name
         .map(PathBuf::from)
         .and_then(|p| p.file_stem())
         .map(|s| s.to_string_lossy().into_owned())
