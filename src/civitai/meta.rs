@@ -1,4 +1,5 @@
 use std::{
+    env,
     fs::File,
     io::BufReader,
     path::{Path, PathBuf},
@@ -279,4 +280,26 @@ pub fn blake3_hash<P: AsRef<Path>>(target_file: P) -> Result<String> {
     let hash_str = hash.to_hex().to_string().to_uppercase();
 
     Ok(hash_str)
+}
+
+pub async fn save_version_file_hash<P: AsRef<Path>>(source_file_path: P, hash: &str) -> Result<()> {
+    let source_file = source_file_path.as_ref();
+
+    let model_file_name = source_file
+        .file_stem()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap();
+    let hash_file_name = format!("{model_file_name}.blake3");
+    let hash_file_path = match source_file.parent() {
+        Some(dir) => dir.to_path_buf(),
+        None => env::current_dir()?,
+    }
+    .join(hash_file_name);
+
+    let mut hash_file = tokio::fs::File::open(hash_file_path).await?;
+    let blake3_str = hash.to_string().to_uppercase();
+    hash_file.write_all(blake3_str.as_bytes()).await?;
+    hash_file.flush().await?;
+
+    Ok(())
 }
