@@ -15,6 +15,8 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt, BufReader},
 };
 
+use crate::{cache_db, civitai::meta::save_version_file_hash};
+
 use super::model;
 
 pub async fn download_single_model_file(
@@ -99,20 +101,19 @@ pub async fn download_single_model_file(
     }
 
     // Record model blake3 hash
-    let model_file_name = target_file_path
-        .file_stem()
-        .map(|s| s.to_string_lossy().into_owned())
-        .unwrap();
-    let hash_file_name = format!("{model_file_name}.blake3");
-    let hash_file_path = match destination_path {
-        Some(given_path) => given_path.clone(),
-        None => env::current_dir()?,
-    }
-    .join(hash_file_name);
-    let mut hash_file = File::open(hash_file_path).await?;
-    let blake3_str = blake3_checksum.to_hex().to_string().to_uppercase();
-    hash_file.write_all(blake3_str.as_bytes()).await?;
-    hash_file.flush().await?;
+    let blake3_str = blake3_checksum.to_hex().to_string();
+    save_version_file_hash(&target_file_path, &blake3_str)
+        .await
+        .context("Save file blake3 hash record")?;
+
+    cache_db::store_civitai_model_file_location(
+        model_version_meta.model_id(),
+        model_version_meta.id(),
+        file_id,
+        &target_file_path,
+        &blake3_str,
+    )
+    .context("Store file location to cache database")?;
 
     Ok(selected_file.name.clone())
 }
