@@ -1,11 +1,6 @@
-use std::{
-    cmp::min,
-    env,
-    io::Cursor,
-    path::{Path, PathBuf},
-};
+use std::{cmp::min, env, io::Cursor, path::PathBuf};
 
-use anyhow::{Context, anyhow, bail};
+use anyhow::{Context, anyhow};
 use futures_util::StreamExt;
 use image::ImageReader;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -28,7 +23,7 @@ pub async fn download_single_model_file(
     let selected_file = model_version_meta
         .files()?
         .into_iter()
-        .find(|f| f.id == file_id)
+        .find(|f| f.id() == file_id)
         .ok_or(anyhow!("Request model file is not found"))?;
     println!("Downloading file: {}", selected_file.name());
     let target_file_path = match destination_path {
@@ -39,7 +34,7 @@ pub async fn download_single_model_file(
     let config = crate::configuration::CONFIGURATION.read().await;
     let civitai_auth_key = config.civitai.api_key.clone().unwrap_or_default();
     let download_request = client
-        .request(reqwest::Method::GET, selected_file.download_url.clone())
+        .request(reqwest::Method::GET, selected_file.download_url())
         .bearer_auth(civitai_auth_key);
     let request = download_request.build()?;
 
@@ -55,7 +50,7 @@ pub async fn download_single_model_file(
             .template("{spinner:.green} [{wide_bar:.cyan/blue}] {decimal_bytes}/{decimal_total_bytes} [{elapsed}] ETA:{eta}")?
             .progress_chars("=>-"),
     );
-    let mut file = File::create(target_file_path).await?;
+    let mut file = File::create(&target_file_path).await?;
     let mut downloaded_size: u64 = 0;
     let mut download_stream = response.bytes_stream();
 
@@ -67,13 +62,10 @@ pub async fn download_single_model_file(
     }
     file.flush().await?;
 
-    pb.finish_with_message(format!(
-        "File {} download completed.",
-        selected_file.name.clone()
-    ));
+    pb.finish_with_message(format!("File {} download completed.", selected_file.name()));
 
     // Run crc32 check
-    let mut check_file = File::open(target_file_path).await?;
+    let mut check_file = File::open(&target_file_path).await?;
     let mut reader = BufReader::new(&mut check_file);
     let mut crc32_hasher = crc32fast::Hasher::new();
     let mut blake3_hasher = blake3::Hasher::new();
@@ -110,12 +102,12 @@ pub async fn download_single_model_file(
         model_version_meta.model_id(),
         model_version_meta.id(),
         file_id,
-        &target_file_path,
         &blake3_str,
+        &target_file_path,
     )
     .context("Store file location to cache database")?;
 
-    Ok(selected_file.name.clone())
+    Ok(selected_file.name())
 }
 
 pub enum ModelVersionFileNamePresent {
@@ -152,15 +144,14 @@ pub async fn download_model_version_cover_image(
                 .context("Fetch file list in model version")?;
             version_files
                 .iter()
-                .find(|f| f.is_primary)
+                .find(|f| f.is_primary().unwrap_or_default())
                 .map(model::ModelVersionFile::name)
         }
     };
 
     let downloaded_file_name = file_name
         .map(PathBuf::from)
-        .and_then(|p| p.file_stem())
-        .map(|s| s.to_string_lossy().into_owned())
+        .and_then(|p| p.file_stem().map(|fs| fs.to_string_lossy().into_owned()))
         .ok_or(anyhow!("Metadata of downloaded file is not found"))?;
     let cover_image = version_meta
         .images()?
@@ -180,9 +171,6 @@ pub async fn download_model_version_cover_image(
     let request = download_request.build()?;
 
     let response = client.execute(request).await?;
-    let file_legnth = response
-        .content_length()
-        .ok_or(anyhow!("Incorrect cover image length"))?;
 
     let image_bytes = response.bytes().await?;
     let image_buffer = Cursor::new(image_bytes);
@@ -197,7 +185,7 @@ pub async fn download_model_version_cover_image(
         Some(given_path) => given_path.clone(),
         None => env::current_dir()?,
     }
-    .join(preview_image_filename);
+    .join(&preview_image_filename);
     image.save_with_format(&target_image_path, image::ImageFormat::Jpeg)?;
 
     Ok(Some(preview_image_filename))
