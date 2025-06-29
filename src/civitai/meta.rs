@@ -1,7 +1,6 @@
 use std::{
     env,
-    fs::File,
-    io::BufReader,
+    io::{BufReader, Read},
     path::{Path, PathBuf},
 };
 
@@ -38,7 +37,7 @@ pub async fn fetch_model_metadata(client: &Client, model_id: u64) -> Result<mode
         serde_json::from_str::<Value>(&content).context("Failed to parse model meta info")?;
     let model_meta = model::Model::try_from(&raw_model_meta)?;
 
-    cache_db::store_civitai_model_meta(&model_meta)?;
+    cache_db::store_civitai_model(&model_meta)?;
 
     Ok(model_meta)
 }
@@ -70,7 +69,7 @@ pub async fn fetch_model_version_meta(
         .context("Failed to parse model version meta info")?;
     let model_version_meta = model::ModelVersion::try_from(&raw_model_version_meta)?;
 
-    cache_db::store_civitai_model_version_meta(&model_version_meta)?;
+    cache_db::store_civitai_model_version(&model_version_meta)?;
 
     Ok(model_version_meta)
 }
@@ -102,7 +101,7 @@ pub async fn fetch_model_version_meta_by_blake3(
         .context("Failed to parse model version meta info")?;
     let model_version_meta = model::ModelVersion::try_from(&raw_model_version_meta)?;
 
-    cache_db::store_civitai_model_version_meta(&model_version_meta)?;
+    cache_db::store_civitai_model_version(&model_version_meta)?;
 
     Ok(model_version_meta)
 }
@@ -146,10 +145,10 @@ pub async fn fetch_model_community_images(
     );
 
     let mut model_community_images = Vec::new();
-    for item in response_items.as_array()? {
+    for item in response_items.as_array().unwrap() {
         let image = model::ModelCommunityImage::try_from(item)?;
-        model_community_images.push(image);
         cache_db::store_civitai_model_community_image(model_id, &image)?;
+        model_community_images.push(image);
     }
 
     Ok(model_community_images)
@@ -158,34 +157,36 @@ pub async fn fetch_model_community_images(
 async fn write_image_meta(file: &mut File, image: &dyn ImageMeta) -> Result<()> {
     let posi_prompt = image.positive_prompt();
     ensure!(posi_prompt.is_some(), "No valid positive prompt");
-    file.write_all("===\n\n").await?;
+    file.write_all(b"===\n\n").await?;
     if let Some(prompt) = posi_prompt {
-        file.write_all(format!("**Positive Prompt:**\n\n{prompt}\n\n"))
+        file.write_all(format!("**Positive Prompt:**\n\n{prompt}\n\n").as_bytes())
             .await?;
     }
     if let Some(neg_prompt) = image.negative_prompt() {
-        file.write_all(format!("**Negative Prompt:**\n\n{neg_prompt}\n\n"))
+        file.write_all(format!("**Negative Prompt:**\n\n{neg_prompt}\n\n").as_bytes())
             .await?;
     }
     if let Some(sampler) = image.sampler() {
-        file.write_all(format!("**Sampler:** {sampler}\n\n"))
+        file.write_all(format!("**Sampler:** {sampler}\n\n").as_bytes())
             .await?;
     }
     if let Some(scheduler) = image.scheduler() {
-        file.write_all(format!("**Scheduler:** {scheduler}\n\n"))
+        file.write_all(format!("**Scheduler:** {scheduler}\n\n").as_bytes())
             .await?;
     }
     if let Some(seed) = image.seed() {
-        file.write_all(format!("**Seed:** {seed}\n\n")).await?;
-    }
-    if let Some(steps) = image.steps() {
-        file.write_all(format!("**Steps:** {steps}\n\n")).await?;
-    }
-    if let Some(cfg_scale) = image.cfg_scale() {
-        file.write_all(format!("**CFG Scale:** {cfg_scale:.2}\n\n"))
+        file.write_all(format!("**Seed:** {seed}\n\n").as_bytes())
             .await?;
     }
-    file.write_all("===\n\n").await?;
+    if let Some(steps) = image.steps() {
+        file.write_all(format!("**Steps:** {steps}\n\n").as_bytes())
+            .await?;
+    }
+    if let Some(cfg_scale) = image.cfg_scale() {
+        file.write_all(format!("**CFG Scale:** {cfg_scale:.2}\n\n").as_bytes())
+            .await?;
+    }
+    file.write_all(b"===\n\n").await?;
 
     Ok(())
 }
@@ -211,34 +212,37 @@ pub async fn save_model_version_readme(
 
     let mut meta_file = File::create(meta_file_path).await?;
     meta_file
-        .write_all(format!("# {}\n\n", model.name()))
+        .write_all(format!("# {}\n\n", model.name()).as_bytes())
         .await?;
     meta_file.write_all(model_description.as_bytes()).await?;
     meta_file
-        .write_all(format!("\n\n## Version: {}\n\n", model_version.name()))
+        .write_all(format!("\n\n## Version: {}\n\n", model_version.name()).as_bytes())
         .await?;
 
     if let Some(image) = cover_image_filename {
         meta_file
-            .write_all(format!("![cover](./{image})\n\n"))
+            .write_all(format!("![cover](./{image})\n\n").as_bytes())
             .await?;
     }
 
     if let Some(description) = model_version_description {
-        meta_file.write_all(description).await?;
+        meta_file.write_all(description.as_bytes()).await?;
     }
     meta_file.write_all(b"\n\n").await?;
 
-    if model_version_meta.trained_words.len() > 0 {
+    let trained_words = model_version.trained_words();
+    if trained_words.len() > 0 {
         meta_file.write_all(b"## Trained Words\n\n").await?;
-        for word in model_version_meta.trained_words.iter() {
-            meta_file.write_all(format!("- {word}\n")).await?;
+        for word in trained_words.iter() {
+            meta_file
+                .write_all(format!("- {word}\n").as_bytes())
+                .await?;
         }
     }
 
     let version_cover_images = model_version.images()?;
     if !version_cover_images.is_empty() {
-        meta_file.write_all("## Cover image prompts\n\n").await?;
+        meta_file.write_all(b"## Cover image prompts\n\n").await?;
         for image in version_cover_images {
             write_image_meta(&mut meta_file, &image).await?;
         }
@@ -246,7 +250,7 @@ pub async fn save_model_version_readme(
 
     if !community_images.is_empty() {
         meta_file
-            .write_all("## Community image prompts\n\n")
+            .write_all(b"## Community image prompts\n\n")
             .await?;
         for image in community_images {
             write_image_meta(&mut meta_file, image).await?;
@@ -264,7 +268,7 @@ pub fn blake3_hash<P: AsRef<Path>>(target_file: P) -> Result<String> {
         bail!("Request file {} not exists", target_file_path.display());
     }
 
-    let mut file = File::open(target_file_path)?;
+    let mut file = std::fs::File::open(target_file_path)?;
     let mut reader = BufReader::new(&mut file);
     let mut hasher = blake3::Hasher::new();
     let mut buffer = [0u8; 512 * 1024];
@@ -296,7 +300,7 @@ pub async fn save_version_file_hash<P: AsRef<Path>>(source_file_path: P, hash: &
     }
     .join(hash_file_name);
 
-    let mut hash_file = tokio::fs::File::open(hash_file_path).await?;
+    let mut hash_file = File::open(hash_file_path).await?;
     let blake3_str = hash.to_string().to_uppercase();
     hash_file.write_all(blake3_str.as_bytes()).await?;
     hash_file.flush().await?;
