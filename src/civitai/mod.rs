@@ -11,8 +11,6 @@ mod selections;
 
 pub use model::*;
 
-use crate::cache_db;
-
 pub fn try_parse_civitai_model_url(url: &Url) -> Result<(String, Option<String>)> {
     let path_segments = url.path_segments();
     let model_id = if let Some(mut segments) = path_segments {
@@ -41,12 +39,12 @@ pub async fn download_from_civitai(
     destination_path: Option<&PathBuf>,
 ) -> Result<()> {
     println!("Fetching model metadata...");
-    let model_meta = meta::fetch_model_metadata(client, &model_id.to_string()).await?;
+    let model_meta = meta::fetch_model_metadata(client, model_id).await?;
     let selected_version = selections::select_model_version(&model_meta, version_id)
         .context("Unable to confirm model version")?;
 
     println!("Fetching specified version metadata...");
-    let selected_version_meta = meta::fetch_model_version_meta(client, selected_version.id())
+    let selected_version_meta = meta::fetch_model_version_meta(client, selected_version)
         .await
         .with_context(|| format!("Failed to fetch version {selected_version} detail metadata"))?;
 
@@ -75,7 +73,7 @@ pub async fn download_from_civitai(
             .with_context(|| format!("Failed to confirm model version file {file_id} name"))?;
         let model_file_name = download_task::download_single_model_file(
             client,
-            &selected_version,
+            &selected_version_meta,
             file_id,
             destination_path.as_deref(),
         )
