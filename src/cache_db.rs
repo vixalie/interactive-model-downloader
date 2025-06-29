@@ -37,6 +37,7 @@ pub fn store_civitai_model(model_meta: &civitai::Model) -> Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn retreive_civitai_model(model_id: u64) -> Result<Option<civitai::Model>> {
     let model_key = format!("civitai:model:{}", model_id);
     let db = CACHE_DB
@@ -53,6 +54,7 @@ pub fn retreive_civitai_model(model_id: u64) -> Result<Option<civitai::Model>> {
     }
 }
 
+#[allow(dead_code)]
 pub fn is_civitai_model_exists(model_id: u64) -> Result<bool> {
     let model_key = format!("civitai:model:{}", model_id);
     let db = CACHE_DB
@@ -76,6 +78,7 @@ pub fn store_civitai_model_version(model_version_meta: &civitai::ModelVersion) -
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn retreive_civitai_model_version(
     model_id: u64,
     model_version_id: u64,
@@ -95,6 +98,7 @@ pub fn retreive_civitai_model_version(
     }
 }
 
+#[allow(dead_code)]
 pub fn is_civitai_model_version_exists(model_id: u64, model_version_id: u64) -> Result<bool> {
     let model_version_key = format!("civitai:model:{}:{}", model_id, model_version_id);
     let db = CACHE_DB
@@ -117,6 +121,7 @@ pub fn store_civitai_model_community_image(
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn fetch_civitai_model_community_images(
     model_id: u64,
 ) -> Result<Vec<civitai::ModelCommunityImage>> {
@@ -180,6 +185,7 @@ pub fn store_civitai_model_file_location<P: AsRef<Path>>(
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn retreive_civitai_model_locations_by_blake3(hash: String) -> Result<Option<Vec<PathBuf>>> {
     let location_key = format!("civitai:model:file:blake3:{}", hash);
     let db = CACHE_DB
