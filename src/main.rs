@@ -31,6 +31,9 @@ async fn main() {
         Some(commands::Commands::Download(options)) => {
             commands::process_download_options(&options).await
         }
+        Some(commands::Commands::Renew(options)) => {
+            commands::process_model_meta_renew(&options).await
+        }
         _ => {}
     }
 }
