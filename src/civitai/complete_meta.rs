@@ -11,6 +11,7 @@ use crate::civitai::{
     },
 };
 
+#[allow(dead_code)]
 pub async fn complete_file_meta<P>(client: &Client, source_file: P) -> Result<()>
 where
     P: AsRef<Path>,

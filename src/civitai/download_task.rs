@@ -110,6 +110,7 @@ pub async fn download_single_model_file(
     Ok(selected_file.name())
 }
 
+#[allow(dead_code)]
 pub enum ModelVersionFileNamePresent {
     FileID(u64),
     FileName(String),

@@ -74,6 +74,7 @@ pub async fn fetch_model_version_meta(
     Ok(model_version_meta)
 }
 
+#[allow(dead_code)]
 pub async fn fetch_model_version_meta_by_blake3(
     client: &Client,
     model_hash: &str,
@@ -262,6 +263,7 @@ pub async fn save_model_version_readme(
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn blake3_hash<P: AsRef<Path>>(target_file: P) -> Result<String> {
     let target_file_path = target_file.as_ref();
     if !target_file_path.exists() {
