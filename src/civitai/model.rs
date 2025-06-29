@@ -1,6 +1,3 @@
-use std::char::ToLowercase;
-
-use anyhow::ensure;
 use serde_json::Value;
 use time::{UtcDateTime, format_description::well_known::Rfc3339};
 
@@ -28,13 +25,12 @@ pub trait ImageMeta {
 
 macro_rules! ensure_required_field {
     ($value:expr, $struct_name:expr, $field_name:expr) => {
-        ensure!(
-            $value[$field_name].is_null(),
-            crate::errors::CivitaiParseError::MissingRequiredField(
+        if !$value[$field_name].is_null() {
+            return Err(crate::errors::CivitaiParseError::MissingRequiredField(
                 $struct_name.to_string(),
-                $field_name.to_string()
-            )
-        )
+                $field_name.to_string(),
+            ));
+        }
     };
 }
 
@@ -81,11 +77,13 @@ impl Model {
     }
 
     pub fn versions(&self) -> Result<Vec<ModelVersionBrief>, CivitaiParseError> {
-        let versions = self.0["modelVersions"];
-        ensure!(
-            versions.is_array(),
-            CivitaiParseError::UnregconizedField("Model".to_string(), "modelVersions".to_string())
-        );
+        let versions = &self.0["modelVersions"];
+        if !versions.is_array() {
+            return Err(CivitaiParseError::UnregconizedField(
+                "Model".to_string(),
+                "modelVersions".to_string(),
+            ));
+        }
 
         let mut collected_versions = Vec::new();
         for version in versions.as_array().unwrap().iter() {
@@ -153,7 +151,7 @@ impl ModelVersion {
     }
 
     pub fn is_early_access(&self) -> bool {
-        let early_access_ends_str = self.0["earlyAccessEndsAt"];
+        let early_access_ends_str = &self.0["earlyAccessEndsAt"];
         if early_access_ends_str.is_null() {
             return false;
         }
@@ -169,7 +167,7 @@ impl ModelVersion {
 
     pub fn trained_words(&self) -> Vec<String> {
         let mut trained_words = Vec::new();
-        let words = self.0["trainedWords"];
+        let words = &self.0["trainedWords"];
         if !words.is_array() {
             return trained_words;
         }
@@ -184,11 +182,13 @@ impl ModelVersion {
     }
 
     pub fn files(&self) -> Result<Vec<ModelVersionFile>, CivitaiParseError> {
-        let files = self.0["files"];
-        ensure!(
-            files.is_array(),
-            CivitaiParseError::InvalidFieldValue("ModelVersion".to_string(), "files".to_string())
-        );
+        let files = &self.0["files"];
+        if !files.is_array() {
+            return Err(CivitaiParseError::InvalidFieldValue(
+                "ModelVersion".to_string(),
+                "files".to_string(),
+            ));
+        }
 
         let mut version_files = Vec::new();
         for file in files.as_array().unwrap().iter() {
@@ -199,22 +199,24 @@ impl ModelVersion {
     }
 
     pub fn images(&self) -> Result<Vec<ModelImage>, CivitaiParseError> {
-        let images = self.0["images"];
-        ensure!(
-            images.is_array(),
-            CivitaiParseError::InvalidFieldValue("ModelVersion".to_string(), "images".to_string())
-        );
+        let images = &self.0["images"];
+        if !images.is_array() {
+            return Err(CivitaiParseError::InvalidFieldValue(
+                "ModelVersion".to_string(),
+                "images".to_string(),
+            ));
+        }
 
         let mut version_images = Vec::new();
         for image in images.as_array().unwrap() {
             let i = ModelImage::try_from(image)?;
-            model_images.push(i);
+            version_images.push(i);
         }
-        Ok(model_images)
+        Ok(version_images)
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
-        serde_json::to_vec(self).unwrap()
+        serde_json::to_vec(&self.0).unwrap()
     }
 }
 
@@ -247,14 +249,14 @@ impl ModelVersionFile {
         self.0["hashes"]["SHA256"]
             .as_str()
             .map(String::from)
-            .map(str::to_lowercase)
+            .map(|s| s.to_lowercase())
     }
 
     pub fn crc32(&self) -> Option<String> {
         self.0["hashes"]["CRC32"]
             .as_str()
             .map(String::from)
-            .map(str::to_lowercase)
+            .map(|s| s.to_lowercase())
     }
 
     pub fn choice(&self) -> (u64, String) {
@@ -339,11 +341,13 @@ impl ImageMeta for ModelImage {
 pub fn try_parse_community_images(
     value: &Value,
 ) -> Result<Vec<ModelCommunityImage>, CivitaiParseError> {
-    let items = value["items"];
-    ensure!(
-        items.is_array(),
-        CivitaiParseError::InvalidFieldValue("CommunityImages".to_string(), "items".to_string())
-    );
+    let items = &value["items"];
+    if !items.is_array() {
+        return Err(CivitaiParseError::InvalidFieldValue(
+            "CommunityImages".to_string(),
+            "items".to_string(),
+        ));
+    }
 
     let mut images = Vec::new();
     for item in items.as_array().unwrap() {
