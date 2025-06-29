@@ -3,9 +3,9 @@ use std::{
     sync::{Arc, LazyLock, Mutex},
 };
 
-use anyhow::{Result, anyhow, bail, ensure};
+use anyhow::{Result, anyhow};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, to_vec};
+use serde_json::Value;
 
 use crate::civitai;
 
@@ -29,7 +29,9 @@ static CACHE_DB: LazyLock<Arc<Mutex<sled::Db>>> = LazyLock::new(|| {
 pub fn store_civitai_model(model_meta: &civitai::Model) -> Result<()> {
     let model_id = model_meta.id();
     let model_key = format!("civitai:model:{}", model_id);
-    let db = CACHE_DB.lock()?;
+    let db = CACHE_DB
+        .lock()
+        .map_err(|e| anyhow!("Failed to lock database, {}", e))?;
     db.insert(model_key, model_meta.to_bytes())?;
     db.flush()?;
     Ok(())
@@ -37,7 +39,9 @@ pub fn store_civitai_model(model_meta: &civitai::Model) -> Result<()> {
 
 pub fn retreive_civitai_model(model_id: u64) -> Result<Option<civitai::Model>> {
     let model_key = format!("civitai:model:{}", model_id);
-    let db = CACHE_DB.lock()?;
+    let db = CACHE_DB
+        .lock()
+        .map_err(|e| anyhow!("Failed to lock database, {}", e))?;
     let raw_value = db.get(&model_key)?;
     match raw_value {
         Some(value) => {
@@ -51,18 +55,22 @@ pub fn retreive_civitai_model(model_id: u64) -> Result<Option<civitai::Model>> {
 
 pub fn is_civitai_model_exists(model_id: u64) -> Result<bool> {
     let model_key = format!("civitai:model:{}", model_id);
-    let db = CACHE_DB.lock()?;
+    let db = CACHE_DB
+        .lock()
+        .map_err(|e| anyhow!("Failed to lock database, {}", e))?;
     let exists = db.contains_key(&model_key)?;
     Ok(exists)
 }
 
-pub fn store_civitai_model_version(model_version_meta: &ModelVersion) -> Result<()> {
+pub fn store_civitai_model_version(model_version_meta: &civitai::ModelVersion) -> Result<()> {
     let model_version_key = format!(
         "civitai:model:{}:{}",
         model_version_meta.model_id(),
         model_version_meta.id()
     );
-    let db = CACHE_DB.lock()?;
+    let db = CACHE_DB
+        .lock()
+        .map_err(|e| anyhow!("Failed to lock database, {}", e))?;
     db.insert(&model_version_key, model_version_meta.to_bytes())?;
     db.flush()?;
     Ok(())
@@ -73,12 +81,14 @@ pub fn retreive_civitai_model_version(
     model_version_id: u64,
 ) -> Result<Option<civitai::ModelVersion>> {
     let model_version_key = format!("civitai:model:{}:{}", model_id, model_version_id);
-    let db = CACHE_DB.lock()?;
+    let db = CACHE_DB
+        .lock()
+        .map_err(|e| anyhow!("Failed to lock database, {}", e))?;
     let version_raw_value = db.get(&model_version_key)?;
     match version_raw_value {
         Some(value) => {
             let version_value: Value = serde_json::from_slice(&value)?;
-            let model_version = civitai::ModelVersion::try_from(&version_meta_value)?;
+            let model_version = civitai::ModelVersion::try_from(&version_value)?;
             Ok(Some(model_version))
         }
         None => Ok(None),
@@ -87,7 +97,9 @@ pub fn retreive_civitai_model_version(
 
 pub fn is_civitai_model_version_exists(model_id: u64, model_version_id: u64) -> Result<bool> {
     let model_version_key = format!("civitai:model:{}:{}", model_id, model_version_id);
-    let db = CACHE_DB.lock()?;
+    let db = CACHE_DB
+        .lock()
+        .map_err(|e| anyhow!("Failed to lock database, {}", e))?;
     let exists = db.contains_key(&model_version_key)?;
     Ok(exists)
 }
@@ -97,7 +109,9 @@ pub fn store_civitai_model_community_image(
     image: &civitai::ModelCommunityImage,
 ) -> Result<()> {
     let model_community_images_key = format!("civitai:model:{}:image:{}", model_id, image.id());
-    let db = CACHE_DB.lock()?;
+    let db = CACHE_DB
+        .lock()
+        .map_err(|e| anyhow!("Failed to lock database, {}", e))?;
     db.insert(model_community_images_key, image.to_bytes())?;
     db.flush()?;
     Ok(())
@@ -107,14 +121,16 @@ pub fn fetch_civitai_model_community_images(
     model_id: u64,
 ) -> Result<Vec<civitai::ModelCommunityImage>> {
     let model_community_images_prefix = format!("civitai:model:{}:image:", model_id);
-    let db = CACHE_DB.lock()?;
-    let mut images = db.scan_prefix(model_community_images_prefix);
+    let db = CACHE_DB
+        .lock()
+        .map_err(|e| anyhow!("Failed to lock database, {}", e))?;
+    let images = db.scan_prefix(model_community_images_prefix);
 
     let mut community_images = Vec::new();
     for value in images {
         if let Ok((_, raw_value)) = value {
             let raw_image_value: Value = serde_json::from_slice(&raw_value)?;
-            if let Ok(image) = civitai::ModelCommunityImage::try_from(raw_image_value) {
+            if let Ok(image) = civitai::ModelCommunityImage::try_from(&raw_image_value) {
                 community_images.push(image);
             }
         }
@@ -143,22 +159,21 @@ pub fn store_civitai_model_file_location<P: AsRef<Path>>(
 
     let file_blake3_key = format!("civitai:model:file:blake3:{blake3_hash}");
 
-    let new_record = CivitaiFileLocationRecord {
-        model_id,
-        version_id,
-        file_id,
-        locations: vec![location_str],
-    };
-
-    let db = CACHE_DB.lock()?;
-    if let Some(file_blake3_key) = file_blake3_key {
-        if let Ok(Some(record)) = db.get(&file_blake3_key) {
-            let mut record: FileRecord = serde_json::from_slice(&record)?;
-            record.locations.push(location_str);
-            db.insert(&file_blake3_key, serde_json::to_vec(&record)?)?;
-        } else {
-            db.insert(&file_blake3_key, serde_json::to_vec(&new_record)?)?;
-        }
+    let db = CACHE_DB
+        .lock()
+        .map_err(|e| anyhow!("Failed to lock database, {}", e))?;
+    if let Ok(Some(record)) = db.get(&file_blake3_key) {
+        let mut record: CivitaiFileLocationRecord = serde_json::from_slice(&record)?;
+        record.locations.push(location_str);
+        db.insert(&file_blake3_key, serde_json::to_vec(&record)?)?;
+    } else {
+        let new_record = CivitaiFileLocationRecord {
+            model_id,
+            version_id,
+            file_id,
+            locations: vec![location_str],
+        };
+        db.insert(&file_blake3_key, serde_json::to_vec(&new_record)?)?;
     }
     db.flush()?;
 
@@ -167,7 +182,9 @@ pub fn store_civitai_model_file_location<P: AsRef<Path>>(
 
 pub fn retreive_civitai_model_locations_by_blake3(hash: String) -> Result<Option<Vec<PathBuf>>> {
     let location_key = format!("civitai:model:file:blake3:{}", hash);
-    let db = CACHE_DB.lock()?;
+    let db = CACHE_DB
+        .lock()
+        .map_err(|e| anyhow!("Failed to lock database, {}", e))?;
     let record = db.get(&location_key)?;
     match record {
         Some(raw_value) => {
