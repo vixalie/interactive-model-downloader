@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use anyhow::{Context, Result, anyhow, bail};
 use reqwest::Url;
 
+mod complete_meta;
 mod download_task;
 mod meta;
 mod model;
@@ -95,7 +96,7 @@ pub async fn download_from_civitai(
     let cover_image_filename = download_task::download_model_version_cover_image(
         client,
         &selected_version_meta,
-        primary_file_id,
+        download_task::ModelVersionFileNamePresent::FileID(primary_file_id),
         destination_path.as_deref(),
     )
     .await
