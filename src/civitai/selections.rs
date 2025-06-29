@@ -1,4 +1,3 @@
-use anyhow::anyhow;
 use dialoguer::{MultiSelect, Select};
 
 use super::{ModelVersionBrief, ModelVersionFile, model};
@@ -66,10 +65,11 @@ pub fn select_model_version_files(
         .iter()
         .map(|choice| {
             selected_version
-                .files
+                .files()
+                .unwrap_or_default()
                 .iter()
-                .find(|file| file.id == choice.0)
-                .and_then(|file| file.primary)
+                .find(|file| file.id() == choice.0)
+                .and_then(|file| file.is_primary())
                 .unwrap_or_default()
         })
         .collect::<Vec<_>>();
