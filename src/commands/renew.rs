@@ -5,7 +5,7 @@ use clap::Args;
 #[derive(Args, Default)]
 pub struct RenewOptions {
     #[arg(help = "The model file request to renew metadata.")]
-    pub target_file: String,
+    pub target_file: PathBuf,
 }
 
 fn is_legal_model_file<P: AsRef<Path>>(file_path: P) -> bool {
@@ -22,17 +22,8 @@ fn is_legal_model_file<P: AsRef<Path>>(file_path: P) -> bool {
 
 pub async fn process_model_meta_renew(options: &RenewOptions) {
     println!("Note: This feature only supports updating models downloaded from Civitai.com.");
-    let target_file = PathBuf::from(&options.target_file);
 
-    let finalized_file_path = if target_file.file_name().is_some() && target_file.parent().is_none()
-    {
-        let current_dir = std::env::current_dir().expect("Failed to get current directory");
-        current_dir.join(target_file)
-    } else {
-        target_file.clone()
-    };
-
-    if !finalized_file_path.is_file() || !is_legal_model_file(&finalized_file_path) {
+    if !options.target_file.is_file() || !is_legal_model_file(&options.target_file) {
         println!("The target file must be a model file.");
         return;
     }
@@ -41,7 +32,7 @@ pub async fn process_model_meta_renew(options: &RenewOptions) {
         .await
         .expect("failed to initialize client");
 
-    crate::civitai::complete_file_meta(&civitai_client, &finalized_file_path)
+    crate::civitai::complete_file_meta(&civitai_client, &options.target_file)
         .await
         .expect("Failed to retreive target file metadata");
     println!("All Done.");
