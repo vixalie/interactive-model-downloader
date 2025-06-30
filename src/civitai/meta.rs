@@ -11,7 +11,7 @@ use reqwest::{Client, Method, header};
 use serde_json::Value;
 use tokio::{fs::File, io::AsyncWriteExt};
 
-use crate::{cache_db, downloader::make_backoff_policy};
+use crate::{cache_db, downloader::make_backoff_policy, utils::duration_to_sec_string};
 
 use super::model::{self, ImageMeta};
 
@@ -146,8 +146,12 @@ pub async fn fetch_model_community_images(
             ))),
         }
     };
-    let notify_op =
-        |_, _| println!("Failed to retreive community images metadata, will try again later.");
+    let notify_op = |_, d| {
+        println!(
+            "Failed to retreive community images metadata, will try again {} later.",
+            duration_to_sec_string(&d)
+        )
+    };
     let policy = make_backoff_policy(600);
     let meta_response = backoff::future::retry_notify(policy, task, notify_op)
         .await

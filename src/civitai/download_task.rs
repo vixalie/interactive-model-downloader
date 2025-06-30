@@ -14,6 +14,7 @@ use crate::{
         meta::{self, save_version_file_hash},
     },
     downloader::make_backoff_policy,
+    utils::duration_to_sec_string,
 };
 
 use super::model;
@@ -171,8 +172,11 @@ pub async fn download_model_version_cover_image(
 
         Ok(image_bytes)
     };
-    let notify_op = |_: anyhow::Error, _| {
-        println!("Failed to download cover image, will try again later.");
+    let notify_op = |_: anyhow::Error, d| {
+        println!(
+            "Failed to download cover image, will try again {} later.",
+            duration_to_sec_string(&d)
+        );
     };
     let policy = make_backoff_policy(300);
     let image_bytes = backoff::future::retry_notify(policy, task, notify_op)
