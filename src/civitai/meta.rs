@@ -5,7 +5,7 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{Context, Ok, Result, anyhow, bail, ensure};
+use anyhow::{Context, Ok, Result, anyhow, bail};
 use reqwest::{Client, Method, header};
 use serde_json::Value;
 use tokio::{fs::File, io::AsyncWriteExt};
@@ -146,15 +146,15 @@ pub async fn fetch_model_community_images(
         return Ok(Vec::new());
     }
     let raw_response_value = raw_response_value.unwrap();
-    let err_field = raw_response_value["error"];
+    let err_field = &raw_response_value["error"];
     if !err_field.is_null() {
         println!(
             "Civitai.com returns error: {}\nCancel community images collection.",
-            err_field.as_str()
+            err_field.as_str().unwrap_or_default()
         );
         return Ok(Vec::new());
     }
-    let response_items = raw_response_value["item"];
+    let response_items = &raw_response_value["item"];
     if response_items.is_null() {
         bail!("Retreived community images response is missing required field - [items]");
     }
