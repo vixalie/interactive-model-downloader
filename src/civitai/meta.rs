@@ -118,7 +118,7 @@ pub async fn fetch_model_community_images(
         .request(Method::GET, model_meta_url)
         .bearer_auth(civitai_auth_key)
         .header(header::ACCEPT, "application/json")
-        .query(&[("modelId", model_id)]);
+        .query(&[("modelId", model_id), ("limit", "50")]);
     let request = meta_request_builder.build()?;
 
     let meta_response = client
