@@ -122,6 +122,7 @@ pub async fn fetch_model_community_images(
     model_id: u64,
 ) -> Result<Vec<model::ModelCommunityImage>> {
     let task = async || {
+        println!("Try to fetch the metadata of up to 50 images from the header.");
         let config = crate::configuration::CONFIGURATION.read().await;
         let model_meta_url = format!("https://civitai.com/api/v1/images");
         let civitai_auth_key = config.civitai.api_key.clone().unwrap_or_default();
