@@ -9,6 +9,7 @@ mod meta;
 mod model;
 mod selections;
 
+pub use complete_meta::complete_file_meta;
 pub use model::*;
 
 pub fn try_parse_civitai_model_url(url: &Url) -> Result<(String, Option<String>)> {
