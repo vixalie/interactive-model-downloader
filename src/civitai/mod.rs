@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, anyhow, bail};
-use reqwest::Url;
+use reqwest::{Client, Url};
 
 mod download_task;
 mod meta;
@@ -126,15 +126,16 @@ where
     }
 
     print!("Start to calculate file hash...");
-    let source_file_hash = blake3_hash(source_file_path)?;
+    let source_file_hash = meta::blake3_hash(source_file_path)?;
     println!("OK\nFile hash: {}", source_file_hash.to_ascii_uppercase());
 
     print!("Request model version metadata...");
-    let model_version_meta = fetch_model_version_meta_by_blake3(client, &source_file_hash).await?;
+    let model_version_meta =
+        meta::fetch_model_version_meta_by_blake3(client, &source_file_hash).await?;
     println!("OK");
 
     println!("Collecting related model metadata...");
-    let model_meta = fetch_model_metadata(client, model_version_meta.model_id()).await?;
+    let model_meta = meta::fetch_model_metadata(client, model_version_meta.model_id()).await?;
     let source_file_name = source_file_path
         .file_name()
         .unwrap()
@@ -152,7 +153,8 @@ where
     println!("OK");
 
     print!("Collecting related community images metadata...");
-    let related_community_images = fetch_model_community_images(client, model_meta.id()).await?;
+    let related_community_images =
+        meta::fetch_model_community_images(client, model_meta.id()).await?;
     println!("OK");
 
     print!("Save model version readme file...");
