@@ -108,41 +108,6 @@ pub fn is_civitai_model_version_exists(model_id: u64, model_version_id: u64) -> 
     Ok(exists)
 }
 
-pub fn store_civitai_model_community_image(
-    model_id: u64,
-    image: &civitai::ModelCommunityImage,
-) -> Result<()> {
-    let model_community_images_key = format!("civitai:model:{}:image:{}", model_id, image.id());
-    let db = CACHE_DB
-        .lock()
-        .map_err(|e| anyhow!("Failed to lock database, {}", e))?;
-    db.insert(model_community_images_key, image.to_bytes())?;
-    db.flush()?;
-    Ok(())
-}
-
-#[allow(dead_code)]
-pub fn fetch_civitai_model_community_images(
-    model_id: u64,
-) -> Result<Vec<civitai::ModelCommunityImage>> {
-    let model_community_images_prefix = format!("civitai:model:{}:image:", model_id);
-    let db = CACHE_DB
-        .lock()
-        .map_err(|e| anyhow!("Failed to lock database, {}", e))?;
-    let images = db.scan_prefix(model_community_images_prefix);
-
-    let mut community_images = Vec::new();
-    for value in images {
-        if let Ok((_, raw_value)) = value {
-            let raw_image_value: Value = serde_json::from_slice(&raw_value)?;
-            if let Ok(image) = civitai::ModelCommunityImage::try_from(&raw_image_value) {
-                community_images.push(image);
-            }
-        }
-    }
-    Ok(community_images)
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct CivitaiFileLocationRecord {
