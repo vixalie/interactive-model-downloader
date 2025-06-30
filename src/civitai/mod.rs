@@ -136,9 +136,13 @@ where
     println!("Ok");
 
     print!("Request model version metadata...");
-    let model_version_meta = meta::fetch_model_version_meta_by_blake3(client, &source_file_hash)
-        .await
-        .context("Reqeust for model version metadata")?;
+    let model_version_meta =
+        match meta::fetch_model_version_meta_by_blake3(client, &source_file_hash).await {
+            Ok(meta) => meta,
+            Err(e) => {
+                return Err(e);
+            }
+        };
     println!("OK");
 
     println!("Collecting related model metadata...");

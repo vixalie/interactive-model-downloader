@@ -32,8 +32,9 @@ pub async fn process_model_meta_renew(options: &RenewOptions) {
         .await
         .expect("failed to initialize client");
 
-    crate::civitai::complete_file_meta(&civitai_client, &options.target_file)
-        .await
-        .expect("Failed to retreive target file metadata");
+    if let Err(e) = crate::civitai::complete_file_meta(&civitai_client, &options.target_file).await
+    {
+        println!("Cancel renew metadata for model file: {e}");
+    }
     println!("All Done.");
 }
