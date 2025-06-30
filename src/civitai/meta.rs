@@ -156,10 +156,12 @@ pub async fn fetch_model_community_images(
     }
     let response_items = &raw_response_value["item"];
     if response_items.is_null() {
-        bail!("Retreived community images response is missing required field - [items]");
+        println!("Retreived community images response is missing required field - [items]");
+        return Ok(Vec::new());
     }
     if !response_items.is_array() {
-        bail!("Retreived community images response is not valid");
+        println!("Retreived community images response is not valid");
+        return Ok(Vec::new());
     }
 
     let mut model_community_images = Vec::new();
