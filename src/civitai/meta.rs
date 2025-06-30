@@ -269,14 +269,9 @@ pub async fn save_model_version_readme(
         meta_file
             .write_all(b"## Community image prompts\n\n")
             .await?;
-        for (idx, image) in community_images.iter().enumerate() {
-            if let Err(e) = write_image_meta(&mut meta_file, image).await {
-                println!(
-                    "The picture {} has no record value, {}",
-                    idx + 1,
-                    e.to_string()
-                );
-                continue;
+        for image in community_images {
+            if image.positive_prompt().is_some() {
+                write_image_meta(&mut meta_file, image).await?;
             }
         }
     }
