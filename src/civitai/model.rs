@@ -25,7 +25,7 @@ pub trait ImageMeta {
 
 macro_rules! ensure_required_field {
     ($value:expr, $struct_name:expr, $field_name:expr) => {
-        if !$value[$field_name].is_null() {
+        if $value[$field_name].is_null() {
             return Err(crate::errors::CivitaiParseError::MissingRequiredField(
                 $struct_name.to_string(),
                 $field_name.to_string(),
