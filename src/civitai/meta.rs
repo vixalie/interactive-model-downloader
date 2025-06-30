@@ -131,12 +131,14 @@ pub async fn fetch_model_community_images(
         .map_err(|e| anyhow!("Failed to retreive model meta info: {}", e.to_string()))?;
     let content = String::from_utf8_lossy(&raw_content);
 
-    let raw_response_value = serde_json::from_str::<Value>(&content).map_err(|e| {
-        anyhow!(
-            "Failed to parse model community images info: {}",
-            e.to_string()
-        )
-    })?;
+    let raw_response_value = serde_json::from_str::<Value>(&content);
+    if raw_response_value.is_err() {
+        println!(
+            "Failed to retreive community images metadata, cancel community images collection."
+        );
+        return Ok(vec![]);
+    }
+    let raw_response_value = raw_response_value.unwrap();
     let response_items = raw_response_value.get("items").ok_or(anyhow!(
         "Failed to parse model community images info: items not found"
     ))?;
