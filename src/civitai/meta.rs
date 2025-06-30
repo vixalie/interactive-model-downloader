@@ -2,6 +2,7 @@ use std::{
     env,
     io::{BufReader, Read},
     path::{Path, PathBuf},
+    time::Duration,
 };
 
 use anyhow::{Context, Ok, Result, anyhow, bail, ensure};
@@ -118,13 +119,18 @@ pub async fn fetch_model_community_images(
         .request(Method::GET, model_meta_url)
         .bearer_auth(civitai_auth_key)
         .header(header::ACCEPT, "application/json")
-        .query(&[("modelId", model_id), ("limit", "50")]);
+        .query(&[("modelId", model_id), ("limit", 50)])
+        .timeout(Duration::from_secs(30));
     let request = meta_request_builder.build()?;
 
-    let meta_response = client
-        .execute(request)
-        .await
-        .map_err(|e| anyhow!("Failed to retreive model meta info: {}", e.to_string()))?;
+    let meta_response = client.execute(request).await;
+    if meta_response.is_err() {
+        println!(
+            "Failed to retreive community images metadata, maybe timeout, skip community images collection."
+        );
+        return Ok(vec![]);
+    }
+    let meta_response = meta_response.unwrap();
     let raw_content = meta_response
         .bytes()
         .await
