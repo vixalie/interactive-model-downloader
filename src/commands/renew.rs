@@ -34,6 +34,6 @@ pub async fn process_model_meta_renew(options: &RenewOptions) {
 
     crate::civitai::complete_file_meta(&civitai_client, &options.target_file)
         .await
-        .expect("Failed to retreive tearget file metadata");
+        .expect("Failed to retreive target file metadata");
     println!("All Done.");
 }

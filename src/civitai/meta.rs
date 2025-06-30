@@ -148,10 +148,9 @@ pub async fn fetch_model_community_images(
     let response_items = raw_response_value.get("items").ok_or(anyhow!(
         "Failed to parse model community images info: items not found"
     ))?;
-    ensure!(
-        response_items.is_array(),
-        "Retreived community images response is not valid"
-    );
+    if !response_items.is_array() {
+        bail!("Retreived community images response is not valid");
+    }
 
     let mut model_community_images = Vec::new();
     for item in response_items.as_array().unwrap() {

@@ -129,6 +129,10 @@ where
     let source_file_hash = meta::blake3_hash(source_file_path)?;
     println!("OK\nFile hash: {}", source_file_hash.to_ascii_uppercase());
 
+    print!("Save file hash...");
+    meta::save_version_file_hash(source_file_path, &source_file_hash).await?;
+    println!("Ok");
+
     print!("Request model version metadata...");
     let model_version_meta =
         meta::fetch_model_version_meta_by_blake3(client, &source_file_hash).await?;
