@@ -34,7 +34,7 @@ pub async fn process_model_meta_renew(options: &RenewOptions) {
 
     if let Err(e) = crate::civitai::complete_file_meta(&civitai_client, &options.target_file).await
     {
-        println!("Cancel renew metadata for model file: {e}");
+        println!("\nCancel renew metadata for model file: {e}");
     }
     println!("All Done.");
 }
