@@ -13,6 +13,7 @@ use crate::{
         ImageMeta,
         meta::{self, save_version_file_hash},
     },
+    downloader::make_backoff_policy,
 };
 
 use super::model;
@@ -148,16 +149,35 @@ pub async fn download_model_version_cover_image(
     }
     let cover_image = cover_image.unwrap();
 
-    let config = crate::configuration::CONFIGURATION.read().await;
-    let civitai_auth_key = config.civitai.api_key.clone().unwrap_or_default();
-    let download_request = client
-        .request(reqwest::Method::GET, cover_image.url())
-        .bearer_auth(civitai_auth_key);
-    let request = download_request.build()?;
+    let task = async || {
+        let config = crate::configuration::CONFIGURATION.read().await;
+        let civitai_auth_key = config.civitai.api_key.clone().unwrap_or_default();
+        let download_request = client
+            .request(reqwest::Method::GET, cover_image.url())
+            .bearer_auth(civitai_auth_key);
+        let request = download_request.build().map_err(|e| {
+            backoff::Error::transient(anyhow!("Failed to build cover image download request: {e}"))
+        })?;
 
-    let response = client.execute(request).await?;
+        let response = client.execute(request).await.map_err(|e| {
+            backoff::Error::transient(anyhow!(
+                "Failed to execute cover image download request: {e}"
+            ))
+        })?;
+        let image_bytes = response.bytes().await.map_err(|e| {
+            backoff::Error::transient(anyhow!("Failed to read cover image content: {e}"))
+        })?;
 
-    let image_bytes = response.bytes().await?;
+        Ok(image_bytes)
+    };
+    let notify_op = |_: anyhow::Error, _| {
+        println!("Failed to download cover image, will try again later.");
+    };
+    let policy = make_backoff_policy();
+    let image_bytes = backoff::future::retry_notify(policy, task, notify_op)
+        .await
+        .context("Download cover image")?;
+
     let image_buffer = Cursor::new(image_bytes);
     let image = ImageReader::new(image_buffer)
         .with_guessed_format()

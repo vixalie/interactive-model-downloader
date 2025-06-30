@@ -1,3 +1,6 @@
+use std::time::Duration;
+
+use backoff::{ExponentialBackoff, ExponentialBackoffBuilder};
 use reqwest::{Client, ClientBuilder, Url};
 
 pub enum Platform {
@@ -26,4 +29,14 @@ pub async fn make_client() -> anyhow::Result<Client> {
     let client = client_builder.build()?;
 
     Ok(client)
+}
+
+pub fn make_backoff_policy() -> ExponentialBackoff {
+    let mut building = ExponentialBackoffBuilder::default();
+    let policy = building
+        .with_initial_interval(Duration::from_secs(20))
+        .with_multiplier(1.5)
+        .with_randomization_factor(0.3)
+        .with_max_elapsed_time(Some(Duration::from_secs(300)));
+    policy.build()
 }

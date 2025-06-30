@@ -5,13 +5,13 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{Context, Ok, Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow, bail};
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
 use reqwest::{Client, Method, header};
 use serde_json::Value;
 use tokio::{fs::File, io::AsyncWriteExt};
 
-use crate::cache_db;
+use crate::{cache_db, downloader::make_backoff_policy};
 
 use super::model::{self, ImageMeta};
 
@@ -121,25 +121,37 @@ pub async fn fetch_model_community_images(
     client: &Client,
     model_id: u64,
 ) -> Result<Vec<model::ModelCommunityImage>> {
-    let config = crate::configuration::CONFIGURATION.read().await;
-    let model_meta_url = format!("https://civitai.com/api/v1/images");
-    let civitai_auth_key = config.civitai.api_key.clone().unwrap_or_default();
-    let meta_request_builder = client
-        .request(Method::GET, model_meta_url)
-        .bearer_auth(civitai_auth_key)
-        .header(header::ACCEPT, "application/json")
-        .query(&[("modelId", model_id), ("limit", 50)])
-        .timeout(Duration::from_secs(45));
-    let request = meta_request_builder.build()?;
+    let task = async || {
+        let config = crate::configuration::CONFIGURATION.read().await;
+        let model_meta_url = format!("https://civitai.com/api/v1/images");
+        let civitai_auth_key = config.civitai.api_key.clone().unwrap_or_default();
+        let meta_request_builder = client
+            .request(Method::GET, model_meta_url)
+            .bearer_auth(civitai_auth_key)
+            .header(header::ACCEPT, "application/json")
+            .query(&[("modelId", model_id), ("limit", 50)])
+            .timeout(Duration::from_secs(90));
+        let request = meta_request_builder
+            .build()
+            .map_err(|e| anyhow!("Failed to build community images metadata retreive request: {e}"))
+            .map_err(backoff::Error::transient)?;
 
-    let meta_response = client.execute(request).await;
-    if meta_response.is_err() {
-        println!(
-            "\nFailed to retreive community images metadata, maybe timeout, skip community images collection."
-        );
-        return Ok(vec![]);
-    }
-    let meta_response = meta_response.unwrap();
+        let meta_response = client.execute(request).await;
+
+        match meta_response {
+            Ok(response) => Ok(response),
+            Err(e) => Err(backoff::Error::transient(anyhow!(
+                "Failed to retreive community images metadata: {e}"
+            ))),
+        }
+    };
+    let notify_op =
+        |_, _| println!("Failed to retreive community images metadata, will try again later.");
+    let policy = make_backoff_policy();
+    let meta_response = backoff::future::retry_notify(policy, task, notify_op)
+        .await
+        .context("Retreive community images metadata")?;
+
     let raw_content = meta_response
         .bytes()
         .await

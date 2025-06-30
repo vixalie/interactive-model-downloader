@@ -129,13 +129,12 @@ where
     let source_file_hash = meta::blake3_hash(source_file_path).context("Calculate file hash")?;
     println!("OK\nFile hash: {}", source_file_hash.to_ascii_uppercase());
 
-    print!("Save file hash...");
+    println!("Save file hash...");
     meta::save_version_file_hash(source_file_path, &source_file_hash)
         .await
         .context("Save file hash")?;
-    println!("Ok");
 
-    print!("Request model version metadata...");
+    println!("Request model version metadata...");
     let model_version_meta =
         match meta::fetch_model_version_meta_by_blake3(client, &source_file_hash).await {
             Ok(meta) => meta,
@@ -143,7 +142,6 @@ where
                 return Err(e);
             }
         };
-    println!("OK");
 
     println!("Collecting related model metadata...");
     let model_meta = meta::fetch_model_metadata(client, model_version_meta.model_id())
@@ -154,7 +152,7 @@ where
         .unwrap()
         .to_string_lossy()
         .into_owned();
-    print!("Download cover image...");
+    println!("Download cover image...");
     let cover_image_file_name = download_task::download_model_version_cover_image(
         client,
         &model_version_meta,
@@ -163,15 +161,13 @@ where
     )
     .await
     .context("Downloading cover image")?;
-    println!("OK");
 
-    print!("Collecting related community images metadata...");
+    println!("Collecting related community images metadata...");
     let related_community_images = meta::fetch_model_community_images(client, model_meta.id())
         .await
         .context("Request for community images")?;
-    println!("OK");
 
-    print!("Save model version readme file...");
+    println!("Save model version readme file...");
     meta::save_model_version_readme(
         &model_meta,
         &model_version_meta,
@@ -182,7 +178,6 @@ where
     )
     .await
     .context("Failed to save model version readme file")?;
-    println!("OK");
 
     Ok(())
 }
