@@ -6,6 +6,7 @@ use std::{
 };
 
 use anyhow::{Context, Ok, Result, anyhow, bail};
+use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
 use reqwest::{Client, Method, header};
 use serde_json::Value;
 use tokio::{fs::File, io::AsyncWriteExt};
@@ -186,7 +187,9 @@ async fn write_image_meta(file: &mut File, image: &dyn ImageMeta) -> Result<()> 
     }
     file.write_all(b"===\n\n").await?;
 
-    file.write_all(format!("[Click to view sample image]({})\n\n", image.url()).as_bytes())
+    let image_url = image.url();
+    let encoed_url = utf8_percent_encode(&image_url, NON_ALPHANUMERIC).to_string();
+    file.write_all(format!("[Click to view sample image]({})\n\n", encoed_url).as_bytes())
         .await?;
 
     if let Some(prompt) = posi_prompt {
@@ -251,8 +254,9 @@ pub async fn save_model_version_readme(
         .await?;
 
     if let Some(image) = cover_image_filename {
+        let encoded_file_path = utf8_percent_encode(&image, NON_ALPHANUMERIC).to_string();
         meta_file
-            .write_all(format!("![cover](./{image})\n\n").as_bytes())
+            .write_all(format!("![](./{encoded_file_path})\n\n").as_bytes())
             .await?;
     }
 
