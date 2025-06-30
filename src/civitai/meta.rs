@@ -317,7 +317,11 @@ pub async fn save_version_file_hash<P: AsRef<Path>>(source_file_path: P, hash: &
     }
     .join(hash_file_name);
 
-    let mut hash_file = File::open(hash_file_path).await?;
+    let mut hash_file = if hash_file_path.exists() {
+        File::open(hash_file_path).await?
+    } else {
+        File::create(hash_file_path).await?
+    };
     let blake3_str = hash.to_string().to_uppercase();
     hash_file.write_all(blake3_str.as_bytes()).await?;
     hash_file.flush().await?;

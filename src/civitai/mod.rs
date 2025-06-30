@@ -83,7 +83,7 @@ pub async fn download_from_civitai(
         }
     }
 
-    println!("Fetching community posted images metadata cooresponding to model...");
+    println!("Fetching community posted images metadata related to model...");
     let community_images = meta::fetch_model_community_images(client, model_id)
         .await
         .with_context(|| {

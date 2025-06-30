@@ -5,14 +5,14 @@ use futures_util::StreamExt;
 use image::ImageReader;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
-use tokio::{
-    fs::File,
-    io::{AsyncReadExt, AsyncWriteExt, BufReader},
-};
+use tokio::{fs::File, io::AsyncWriteExt};
 
 use crate::{
     cache_db,
-    civitai::{ImageMeta, meta::save_version_file_hash},
+    civitai::{
+        ImageMeta,
+        meta::{self, save_version_file_hash},
+    },
 };
 
 use super::model;
@@ -67,37 +67,18 @@ pub async fn download_single_model_file(
 
     pb.finish_with_message(format!("File {} download completed.", selected_file.name()));
 
-    // Run crc32 check
-    let mut check_file = File::open(&target_file_path).await?;
-    let mut reader = BufReader::new(&mut check_file);
-    let mut crc32_hasher = crc32fast::Hasher::new();
-    let mut blake3_hasher = blake3::Hasher::new();
-    let mut data_buffer = [0u8; 512 * 1024];
-
-    loop {
-        let read_size = reader.read(&mut data_buffer).await?;
-        if read_size == 0 {
-            break;
-        }
-        crc32_hasher.update(&data_buffer[0..read_size]);
-        blake3_hasher.update(&data_buffer[0..read_size]);
-    }
-    let crc32_checksum = crc32_hasher.finalize();
-    let blake3_checksum = blake3_hasher.finalize();
+    // Run blake3 check
+    let blake3_checksum = meta::blake3_hash(&target_file_path)?;
 
     // Check crc32
-    if let Some(control_value_str) = selected_file.crc32() {
-        let control_value = u32::from_str_radix(&control_value_str, 16)?;
-        if crc32_checksum == control_value {
-            println!("CRC32 check passed.");
-        } else {
-            println!("CRC32 check failed. Maybe need to redownload.");
-        }
+    if selected_file.match_by_blake3(&blake3_checksum) {
+        println!("File blake3 check passed.");
+    } else {
+        println!("File blake3 check failed. Maybe need to redownload.");
     }
 
     // Record model blake3 hash
-    let blake3_str = blake3_checksum.to_hex().to_string();
-    save_version_file_hash(&target_file_path, &blake3_str)
+    save_version_file_hash(&target_file_path, &blake3_checksum)
         .await
         .context("Save file blake3 hash record")?;
 
@@ -105,7 +86,7 @@ pub async fn download_single_model_file(
         model_version_meta.model_id(),
         model_version_meta.id(),
         file_id,
-        &blake3_str,
+        &blake3_checksum,
         &target_file_path,
     )
     .context("Store file location to cache database")?;
