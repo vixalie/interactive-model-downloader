@@ -134,7 +134,8 @@ pub async fn fetch_model_community_images(
     let raw_content = meta_response
         .bytes()
         .await
-        .map_err(|e| anyhow!("Failed to retreive model meta info: {}", e.to_string()))?;
+        .map_err(|e| anyhow!("Failed to retreive model meta info: {}", e.to_string()))
+        .context("Request for community images")?;
     let content = String::from_utf8_lossy(&raw_content);
 
     let raw_response_value = serde_json::from_str::<Value>(&content);
@@ -142,20 +143,30 @@ pub async fn fetch_model_community_images(
         println!(
             "Failed to retreive community images metadata, cancel community images collection."
         );
-        return Ok(vec![]);
+        return Ok(Vec::new());
     }
     let raw_response_value = raw_response_value.unwrap();
-    let response_items = raw_response_value.get("items").ok_or(anyhow!(
-        "Failed to parse model community images info: items not found"
-    ))?;
+    let err_field = raw_response_value["error"];
+    if !err_field.is_null() {
+        println!(
+            "Civitai.com returns error: {}\nCancel community images collection.",
+            err_field.as_str()
+        );
+        return Ok(Vec::new());
+    }
+    let response_items = raw_response_value["item"];
+    if response_items.is_null() {
+        bail!("Retreived community images response is missing required field - [items]");
+    }
     if !response_items.is_array() {
         bail!("Retreived community images response is not valid");
     }
 
     let mut model_community_images = Vec::new();
     for item in response_items.as_array().unwrap() {
-        let image = model::ModelCommunityImage::try_from(item)?;
-        cache_db::store_civitai_model_community_image(model_id, &image)?;
+        let image = model::ModelCommunityImage::try_from(item).context("Parse community image")?;
+        cache_db::store_civitai_model_community_image(model_id, &image)
+            .context("Save community image metadata")?;
         model_community_images.push(image);
     }
 
