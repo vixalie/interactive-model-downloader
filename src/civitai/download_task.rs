@@ -150,6 +150,7 @@ pub async fn download_model_version_cover_image(
     let cover_image = cover_image.unwrap();
 
     let task = async || {
+        println!("Try to fetch cover image.");
         let config = crate::configuration::CONFIGURATION.read().await;
         let civitai_auth_key = config.civitai.api_key.clone().unwrap_or_default();
         let download_request = client
