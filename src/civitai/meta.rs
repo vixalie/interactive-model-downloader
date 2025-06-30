@@ -141,7 +141,7 @@ pub async fn fetch_model_community_images(
     let raw_response_value = serde_json::from_str::<Value>(&content);
     if raw_response_value.is_err() {
         println!(
-            "Failed to retreive community images metadata, cancel community images collection."
+            "Failed to retreive community images metadata, cancel community images collection.\nCancel community images collection."
         );
         return Ok(Vec::new());
     }
@@ -156,11 +156,15 @@ pub async fn fetch_model_community_images(
     }
     let response_items = &raw_response_value["item"];
     if response_items.is_null() {
-        println!("Retreived community images response is missing required field - [items]");
+        println!(
+            "Retreived community images response is missing required field - [items]\nCancel community images collection."
+        );
         return Ok(Vec::new());
     }
     if !response_items.is_array() {
-        println!("Retreived community images response is not valid");
+        println!(
+            "Retreived community images response is not valid.\nCancel community images collection."
+        );
         return Ok(Vec::new());
     }
 
