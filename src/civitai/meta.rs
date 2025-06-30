@@ -104,6 +104,12 @@ pub async fn fetch_model_version_meta_by_blake3(
 
     let raw_model_version_meta = serde_json::from_str::<Value>(&content)
         .context("Failed to parse model version meta info")?;
+    if let Some(err_field) = raw_model_version_meta.get("error") {
+        bail!(
+            "Civitai.com returns error: {}",
+            err_field.as_str().unwrap_or_default()
+        );
+    }
     let model_version_meta = model::ModelVersion::try_from(&raw_model_version_meta)?;
 
     cache_db::store_civitai_model_version(&model_version_meta)?;
