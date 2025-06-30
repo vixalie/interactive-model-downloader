@@ -120,7 +120,7 @@ pub async fn fetch_model_community_images(
         .bearer_auth(civitai_auth_key)
         .header(header::ACCEPT, "application/json")
         .query(&[("modelId", model_id), ("limit", 50)])
-        .timeout(Duration::from_secs(30));
+        .timeout(Duration::from_secs(45));
     let request = meta_request_builder.build()?;
 
     let meta_response = client.execute(request).await;
@@ -146,21 +146,22 @@ pub async fn fetch_model_community_images(
         return Ok(Vec::new());
     }
     let raw_response_value = raw_response_value.unwrap();
-    let err_field = &raw_response_value["error"];
-    if !err_field.is_null() {
+    let err_field = raw_response_value.get("error");
+    if let Some(err_field) = err_field {
         println!(
             "Civitai.com returns error: {}\nCancel community images collection.",
             err_field.as_str().unwrap_or_default()
         );
         return Ok(Vec::new());
     }
-    let response_items = &raw_response_value["item"];
-    if response_items.is_null() {
+    let response_items = raw_response_value.get("items");
+    if response_items.is_none() {
         println!(
             "Retreived community images response is missing required field - [items]\nCancel community images collection."
         );
         return Ok(Vec::new());
     }
+    let response_items = response_items.unwrap();
     if !response_items.is_array() {
         println!(
             "Retreived community images response is not valid.\nCancel community images collection."
@@ -169,10 +170,9 @@ pub async fn fetch_model_community_images(
     }
 
     let mut model_community_images = Vec::new();
-    for item in response_items.as_array().unwrap() {
+    let items = response_items.as_array().unwrap();
+    for item in items {
         let image = model::ModelCommunityImage::try_from(item).context("Parse community image")?;
-        cache_db::store_civitai_model_community_image(model_id, &image)
-            .context("Save community image metadata")?;
         model_community_images.push(image);
     }
 
