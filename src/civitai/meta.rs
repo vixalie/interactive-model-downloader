@@ -135,7 +135,7 @@ pub async fn fetch_model_community_images(
     let meta_response = client.execute(request).await;
     if meta_response.is_err() {
         println!(
-            "Failed to retreive community images metadata, maybe timeout, skip community images collection."
+            "\nFailed to retreive community images metadata, maybe timeout, skip community images collection."
         );
         return Ok(vec![]);
     }
