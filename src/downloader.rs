@@ -31,12 +31,12 @@ pub async fn make_client() -> anyhow::Result<Client> {
     Ok(client)
 }
 
-pub fn make_backoff_policy() -> ExponentialBackoff {
+pub fn make_backoff_policy(max_secs: u64) -> ExponentialBackoff {
     let mut building = ExponentialBackoffBuilder::default();
     let policy = building
         .with_initial_interval(Duration::from_secs(20))
         .with_multiplier(1.5)
         .with_randomization_factor(0.3)
-        .with_max_elapsed_time(Some(Duration::from_secs(300)));
+        .with_max_elapsed_time(Some(Duration::from_secs(max_secs)));
     policy.build()
 }

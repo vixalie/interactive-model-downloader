@@ -147,7 +147,7 @@ pub async fn fetch_model_community_images(
     };
     let notify_op =
         |_, _| println!("Failed to retreive community images metadata, will try again later.");
-    let policy = make_backoff_policy();
+    let policy = make_backoff_policy(600);
     let meta_response = backoff::future::retry_notify(policy, task, notify_op)
         .await
         .context("Retreive community images metadata")?;

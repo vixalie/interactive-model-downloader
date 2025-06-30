@@ -173,7 +173,7 @@ pub async fn download_model_version_cover_image(
     let notify_op = |_: anyhow::Error, _| {
         println!("Failed to download cover image, will try again later.");
     };
-    let policy = make_backoff_policy();
+    let policy = make_backoff_policy(300);
     let image_bytes = backoff::future::retry_notify(policy, task, notify_op)
         .await
         .context("Download cover image")?;
@@ -185,13 +185,23 @@ pub async fn download_model_version_cover_image(
         .decode()
         .context("Unable to decode image")?;
 
-    let preview_image_filename = format!("{downloaded_file_name}.cover.jpg");
+    let old_preview_image_filename = format!("{downloaded_file_name}.cover.jpg");
+    let clear_path = match destination_path {
+        Some(given_path) => given_path.clone(),
+        None => env::current_dir()?,
+    }
+    .join(&old_preview_image_filename);
+    if clear_path.exists() && clear_path.is_file() {
+        tokio::fs::remove_file(clear_path).await?;
+    }
+
+    let preview_image_filename = format!("{downloaded_file_name}.cover.png");
     let target_image_path = match destination_path {
         Some(given_path) => given_path.clone(),
         None => env::current_dir()?,
     }
     .join(&preview_image_filename);
-    image.save_with_format(&target_image_path, image::ImageFormat::Jpeg)?;
+    image.save_with_format(&target_image_path, image::ImageFormat::Png)?;
 
     Ok(Some(preview_image_filename))
 }

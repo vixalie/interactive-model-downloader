@@ -160,12 +160,16 @@ where
         Some(&working_dir),
     )
     .await
-    .context("Downloading cover image")?;
+    .inspect_err(|e| println!("Model version cover download failed: {e}"))
+    .ok()
+    .flatten();
 
     println!("Collecting related community images metadata...");
     let related_community_images = meta::fetch_model_community_images(client, model_meta.id())
         .await
-        .context("Request for community images")?;
+        .inspect_err(|e| println!("Community images metadata retreive failed: {e}"))
+        .ok()
+        .unwrap_or(Vec::new());
 
     println!("Save model version readme file...");
     meta::save_model_version_readme(
