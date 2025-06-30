@@ -7,6 +7,7 @@ mod configuration;
 mod downloader;
 mod errors;
 mod hugging_face;
+mod utils;
 
 #[derive(Parser)]
 #[command(
