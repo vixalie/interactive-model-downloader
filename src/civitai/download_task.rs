@@ -174,7 +174,7 @@ pub async fn download_model_version_cover_image(
     };
     let notify_op = |_: anyhow::Error, d| {
         println!(
-            "Failed to download cover image, will try again {} later.",
+            "Failed to download cover image, will try again after {}.",
             duration_to_sec_string(&d)
         );
     };

@@ -148,7 +148,7 @@ pub async fn fetch_model_community_images(
     };
     let notify_op = |_, d| {
         println!(
-            "Failed to retreive community images metadata, will try again {} later.",
+            "Failed to retreive community images metadata, will try again after {}.",
             duration_to_sec_string(&d)
         )
     };
