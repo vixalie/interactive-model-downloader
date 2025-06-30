@@ -22,15 +22,22 @@ where
         bail!("Source file path is not a valid directory");
     }
 
+    print!("Start to calculate file hash...");
     let source_file_hash = blake3_hash(source_file_path)?;
-    let model_version_meta = fetch_model_version_meta_by_blake3(client, &source_file_hash).await?;
+    println!("OK\nFile hash: {}", source_file_hash.to_ascii_uppercase());
 
+    print!("Request model version metadata...");
+    let model_version_meta = fetch_model_version_meta_by_blake3(client, &source_file_hash).await?;
+    println!("OK");
+
+    println!("Collecting related model metadata...");
     let model_meta = fetch_model_metadata(client, model_version_meta.model_id()).await?;
     let source_file_name = source_file_path
         .file_name()
         .unwrap()
         .to_string_lossy()
         .into_owned();
+    print!("Download cover image...");
     let cover_image_file_name = download_task::download_model_version_cover_image(
         client,
         &model_version_meta,
@@ -39,9 +46,13 @@ where
     )
     .await
     .context("Failed to download cover image")?;
+    println!("OK");
 
+    print!("Collecting related community images metadata...");
     let related_community_images = fetch_model_community_images(client, model_meta.id()).await?;
+    println!("OK");
 
+    print!("Save model version readme file...");
     meta::save_model_version_readme(
         &model_meta,
         &model_version_meta,
@@ -52,6 +63,7 @@ where
     )
     .await
     .context("Failed to save model version readme file")?;
+    println!("OK");
 
     Ok(())
 }
