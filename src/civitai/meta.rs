@@ -157,8 +157,14 @@ pub async fn fetch_model_community_images(
 
 async fn write_image_meta(file: &mut File, image: &dyn ImageMeta) -> Result<()> {
     let posi_prompt = image.positive_prompt();
-    ensure!(posi_prompt.is_some(), "No valid positive prompt");
+    if !posi_prompt.is_some() {
+        bail!("No valid positive prompt");
+    }
     file.write_all(b"===\n\n").await?;
+
+    file.write_all(format!("[Click to view sample image]({})\n\n", image.url()).as_bytes())
+        .await?;
+
     if let Some(prompt) = posi_prompt {
         file.write_all(format!("**Positive Prompt:**\n\n{prompt}\n\n").as_bytes())
             .await?;
@@ -245,7 +251,9 @@ pub async fn save_model_version_readme(
     if !version_cover_images.is_empty() {
         meta_file.write_all(b"## Cover image prompts\n\n").await?;
         for image in version_cover_images {
-            write_image_meta(&mut meta_file, &image).await?;
+            if image.positive_prompt().is_some() {
+                write_image_meta(&mut meta_file, &image).await?;
+            }
         }
     }
 
@@ -253,8 +261,15 @@ pub async fn save_model_version_readme(
         meta_file
             .write_all(b"## Community image prompts\n\n")
             .await?;
-        for image in community_images {
-            write_image_meta(&mut meta_file, image).await?;
+        for (idx, image) in community_images.iter().enumerate() {
+            if let Err(e) = write_image_meta(&mut meta_file, image).await {
+                println!(
+                    "The picture {} has no record value, {}",
+                    idx + 1,
+                    e.to_string()
+                );
+                continue;
+            }
         }
     }
 

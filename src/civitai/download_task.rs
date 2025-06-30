@@ -10,7 +10,10 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt, BufReader},
 };
 
-use crate::{cache_db, civitai::meta::save_version_file_hash};
+use crate::{
+    cache_db,
+    civitai::{ImageMeta, meta::save_version_file_hash},
+};
 
 use super::model;
 

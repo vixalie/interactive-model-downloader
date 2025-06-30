@@ -11,6 +11,7 @@ pub struct ModelImage(Value);
 pub struct ModelCommunityImage(Value);
 
 pub trait ImageMeta {
+    fn url(&self) -> String;
     fn sampler(&self) -> Option<String>;
     fn scheduler(&self) -> Option<String>;
     fn seed(&self) -> Option<u64>;
@@ -275,10 +276,6 @@ impl ModelVersionFile {
 }
 
 impl ModelImage {
-    pub fn url(&self) -> String {
-        self.0["url"].as_str().map(String::from).unwrap()
-    }
-
     pub fn media_type(&self) -> String {
         self.0["type"].as_str().map(String::from).unwrap()
     }
@@ -297,6 +294,10 @@ impl ModelImage {
 }
 
 impl ImageMeta for ModelImage {
+    fn url(&self) -> String {
+        self.0["url"].as_str().map(String::from).unwrap()
+    }
+
     fn sampler(&self) -> Option<String> {
         self.0["meta"]["sampler"].as_str().map(String::from)
     }
@@ -362,16 +363,16 @@ impl ModelCommunityImage {
         self.0["id"].as_u64().unwrap()
     }
 
-    pub fn url(&self) -> String {
-        self.0["url"].as_str().map(String::from).unwrap()
-    }
-
     pub fn to_bytes(&self) -> Vec<u8> {
         serde_json::to_vec(&self.0).unwrap()
     }
 }
 
 impl ImageMeta for ModelCommunityImage {
+    fn url(&self) -> String {
+        self.0["url"].as_str().map(String::from).unwrap()
+    }
+
     fn seed(&self) -> Option<u64> {
         self.0["meta"]["seed"].as_u64()
     }
