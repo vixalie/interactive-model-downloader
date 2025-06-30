@@ -6,7 +6,7 @@ use std::{
 };
 
 use anyhow::{Context, Ok, Result, anyhow, bail};
-use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
+use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
 use reqwest::{Client, Method, header};
 use serde_json::Value;
 use tokio::{fs::File, io::AsyncWriteExt};
@@ -14,6 +14,8 @@ use tokio::{fs::File, io::AsyncWriteExt};
 use crate::cache_db;
 
 use super::model::{self, ImageMeta};
+
+const FILENAME_SET: &AsciiSet = &NON_ALPHANUMERIC.remove(b'.').remove(b'_').remove(b'-');
 
 pub async fn fetch_model_metadata(client: &Client, model_id: u64) -> Result<model::Model> {
     let config = crate::configuration::CONFIGURATION.read().await;
@@ -188,7 +190,7 @@ async fn write_image_meta(file: &mut File, image: &dyn ImageMeta) -> Result<()> 
     file.write_all(b"===\n\n").await?;
 
     let image_url = image.url();
-    let encoed_url = utf8_percent_encode(&image_url, NON_ALPHANUMERIC).to_string();
+    let encoed_url = utf8_percent_encode(&image_url, &FILENAME_SET).to_string();
     file.write_all(format!("[Click to view sample image]({})\n\n", encoed_url).as_bytes())
         .await?;
 
@@ -254,7 +256,7 @@ pub async fn save_model_version_readme(
         .await?;
 
     if let Some(image) = cover_image_filename {
-        let encoded_file_path = utf8_percent_encode(&image, NON_ALPHANUMERIC).to_string();
+        let encoded_file_path = utf8_percent_encode(&image, &FILENAME_SET).to_string();
         meta_file
             .write_all(format!("![](./{encoded_file_path})\n\n").as_bytes())
             .await?;
