@@ -131,7 +131,7 @@ pub async fn fetch_model_community_images(
             .bearer_auth(civitai_auth_key)
             .header(header::ACCEPT, "application/json")
             .query(&[("modelId", model_id), ("limit", 50)])
-            .timeout(Duration::from_secs(90));
+            .timeout(Duration::from_secs(45));
         let request = meta_request_builder
             .build()
             .map_err(|e| anyhow!("Failed to build community images metadata retreive request: {e}"))
@@ -152,7 +152,7 @@ pub async fn fetch_model_community_images(
             duration_to_sec_string(&d)
         )
     };
-    let policy = make_backoff_policy(90).await;
+    let policy = make_backoff_policy(45).await;
     let meta_response = backoff::future::retry_notify(policy, task, notify_op)
         .await
         .context("Retreive community images metadata")?;
