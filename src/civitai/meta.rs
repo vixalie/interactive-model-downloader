@@ -152,7 +152,7 @@ pub async fn fetch_model_community_images(
             duration_to_sec_string(&d)
         )
     };
-    let policy = make_backoff_policy(90);
+    let policy = make_backoff_policy(90).await;
     let meta_response = backoff::future::retry_notify(policy, task, notify_op)
         .await
         .context("Retreive community images metadata")?;

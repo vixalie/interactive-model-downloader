@@ -178,7 +178,7 @@ pub async fn download_model_version_cover_image(
             duration_to_sec_string(&d)
         );
     };
-    let policy = make_backoff_policy(300);
+    let policy = make_backoff_policy(300).await;
     let image_bytes = backoff::future::retry_notify(policy, task, notify_op)
         .await
         .context("Download cover image")?;

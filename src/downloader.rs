@@ -46,7 +46,7 @@ pub async fn make_backoff_policy(max_timeout_secs: u64) -> ExponentialBackoff {
     let mut building = ExponentialBackoffBuilder::default();
     let policy = building
         .with_initial_interval(Duration::from_secs(initial_interval))
-        .with_multiplier(multiplier)
+        .with_multiplier(multiplier as f64)
         .with_randomization_factor(0.2)
         .with_max_elapsed_time(Some(Duration::from_secs(max_elapsed_time)));
     policy.build()
