@@ -53,6 +53,15 @@ pub enum WriteableContent {
         #[arg(long, short = 'p', help = "Password for Proxy server authentication.")]
         password: Option<String>,
     },
+    #[command(name = "retry", about = "Retry policy configuration.")]
+    Retry {
+        #[arg(long, short = 'r', help = "Max retry times.")]
+        max_retry: Option<u32>,
+        #[arg(long, short = 'i', help = "Retry interval in seconds.")]
+        interval: Option<u64>,
+        #[arg[long, short = 'm', help = "Retry interval increament multiplier."]]
+        multiplier: Option<f32>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -63,6 +72,8 @@ pub enum ReadableContent {
     HuggingFaceKey,
     #[command(name = "proxy", about = "Show proxy.")]
     Proxy,
+    #[command(name = "retry", about = "Show retry policy.")]
+    Retry,
 }
 
 pub async fn process_config_options(options: &ConfigOptions) {
@@ -101,6 +112,14 @@ async fn show_config(action: &ReadableContent) {
             } else {
                 println!("Proxy has not been set.")
             }
+        }
+        ReadableContent::Retry => {
+            println!(
+                "When action failed, will retry in {} seconds, increase {:.02}x time when continuous failing, and keep retrying in {} times.",
+                configuration.backoff.initial_interval,
+                configuration.backoff.multiplier,
+                configuration.backoff.max_retry,
+            );
         }
     }
 }
@@ -154,6 +173,17 @@ async fn set_config(action: &WriteableContent) {
                 .expect("Failed to switch proxy server enable state.");
             println!("Download through proxy server has been activated.")
         }
+        WriteableContent::Retry {
+            max_retry,
+            interval,
+            multiplier,
+        } => {
+            configuration
+                .set_backoff(*interval, *multiplier, *max_retry)
+                .await
+                .expect("Failed to save retry policy.");
+            println!("Retry policy has been set.")
+        }
     }
 }
 
@@ -180,6 +210,13 @@ async fn clear_config(action: &ReadableContent) {
                 .await
                 .expect("Failed to clear proxy server settings.");
             println!("Proxy server settings have been cleared.")
+        }
+        ReadableContent::Retry => {
+            configuration
+                .clear_backoff()
+                .await
+                .expect("Failed to clear retry policy.");
+            println!("Retry policy has been reseted.")
         }
     }
 }
@@ -211,4 +248,10 @@ async fn show_all_config() {
             .unwrap_or("[NOT SET]".to_string())
     );
     println!("Use Proxy: {}", configuration.proxy.use_proxy);
+    println!(
+        "When action failed, will retry in {} seconds, increase {:.02}x time when continuous failing, and keep retrying in {} times.",
+        configuration.backoff.initial_interval,
+        configuration.backoff.multiplier,
+        configuration.backoff.max_retry,
+    );
 }

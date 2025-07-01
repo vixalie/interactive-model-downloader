@@ -3,6 +3,8 @@ use std::time::Duration;
 use backoff::{ExponentialBackoff, ExponentialBackoffBuilder};
 use reqwest::{Client, ClientBuilder, Url};
 
+use crate::configuration;
+
 pub enum Platform {
     Civitai,
     HuggingFace,
@@ -31,12 +33,21 @@ pub async fn make_client() -> anyhow::Result<Client> {
     Ok(client)
 }
 
-pub fn make_backoff_policy(max_secs: u64) -> ExponentialBackoff {
+pub async fn make_backoff_policy(max_timeout_secs: u64) -> ExponentialBackoff {
+    let configuration = configuration::CONFIGURATION.read().await;
+    let initial_interval = configuration.backoff.initial_interval;
+    let multiplier = configuration.backoff.multiplier;
+    let max_retry = configuration.backoff.max_retry;
+    let wait_times = initial_interval as f32 * (1.0 - multiplier.powi(max_retry as i32 - 1))
+        / (1.0 - multiplier);
+    let max_timeouts = max_timeout_secs as f32 * max_retry as f32;
+    let max_elapsed_time = (wait_times + max_timeouts).ceil() as u64;
+
     let mut building = ExponentialBackoffBuilder::default();
     let policy = building
-        .with_initial_interval(Duration::from_secs(20))
-        .with_multiplier(1.5)
-        .with_randomization_factor(0.3)
-        .with_max_elapsed_time(Some(Duration::from_secs(max_secs)));
+        .with_initial_interval(Duration::from_secs(initial_interval))
+        .with_multiplier(multiplier)
+        .with_randomization_factor(0.2)
+        .with_max_elapsed_time(Some(Duration::from_secs(max_elapsed_time)));
     policy.build()
 }

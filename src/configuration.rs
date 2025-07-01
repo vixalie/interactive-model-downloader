@@ -15,6 +15,23 @@ pub struct HuggingFaceConfig {
     pub api_key: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackoffConfig {
+    pub initial_interval: u64,
+    pub multiplier: f32,
+    pub max_retry: u32,
+}
+
+impl Default for BackoffConfig {
+    fn default() -> Self {
+        Self {
+            initial_interval: 10,
+            multiplier: 1.5,
+            max_retry: 3,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ProxyConfig {
     pub use_proxy: bool,
@@ -54,9 +71,11 @@ impl ProxyConfig {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Configuration {
     pub civitai: CivitaiConfig,
     pub huggingface: HuggingFaceConfig,
+    pub backoff: BackoffConfig,
     pub proxy: ProxyConfig,
 }
 
@@ -146,6 +165,29 @@ impl Configuration {
 
     pub async fn set_use_proxy(&mut self, use_proxy: bool) -> anyhow::Result<()> {
         self.proxy.use_proxy = use_proxy;
+        self.save().await
+    }
+
+    pub async fn set_backoff(
+        &mut self,
+        initial_interval: Option<u64>,
+        multiplier: Option<f32>,
+        max_retry: Option<u32>,
+    ) -> anyhow::Result<()> {
+        if let Some(interval) = initial_interval {
+            self.backoff.initial_interval = interval;
+        }
+        if let Some(multiplier) = multiplier {
+            self.backoff.multiplier = multiplier;
+        }
+        if let Some(max_retry) = max_retry {
+            self.backoff.max_retry = max_retry;
+        }
+        self.save().await
+    }
+
+    pub async fn clear_backoff(&mut self) -> anyhow::Result<()> {
+        self.backoff = BackoffConfig::default();
         self.save().await
     }
 }
