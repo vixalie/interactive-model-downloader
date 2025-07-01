@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{Context, Result, anyhow, bail};
 use reqwest::{Client, Url};
@@ -120,17 +123,25 @@ where
     P: AsRef<Path>,
 {
     let source_file_path = source_file.as_ref();
+    let source_file_path = if let Some(parent) = source_file_path.parent()
+        && parent.to_string_lossy().is_empty()
+    {
+        let parent_dir = env::current_dir().context("Unable to get current working directory")?;
+        parent_dir.join(source_file_path)
+    } else {
+        source_file_path.to_path_buf()
+    };
     let working_dir = source_file_path.parent().map(Path::to_path_buf).unwrap();
     if !working_dir.exists() || !working_dir.is_dir() {
         bail!("Source file path is not a valid directory");
     }
 
     print!("Start to calculate file hash...");
-    let source_file_hash = meta::blake3_hash(source_file_path).context("Calculate file hash")?;
+    let source_file_hash = meta::blake3_hash(&source_file_path).context("Calculate file hash")?;
     println!("OK\nFile hash: {}", source_file_hash.to_ascii_uppercase());
 
     println!("Save file hash...");
-    meta::save_version_file_hash(source_file_path, &source_file_hash)
+    meta::save_version_file_hash(&source_file_path, &source_file_hash)
         .await
         .context("Save file hash")?;
 
