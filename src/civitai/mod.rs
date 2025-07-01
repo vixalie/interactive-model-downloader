@@ -136,9 +136,9 @@ where
         bail!("Source file path is not a valid directory");
     }
 
-    print!("Start to calculate file hash...");
+    println!("Start to calculate file hash...");
     let source_file_hash = meta::blake3_hash(&source_file_path).context("Calculate file hash")?;
-    println!("OK\nFile hash: {}", source_file_hash.to_ascii_uppercase());
+    println!("File hash: {}", source_file_hash.to_ascii_uppercase());
 
     println!("Save file hash...");
     meta::save_version_file_hash(&source_file_path, &source_file_hash)
