@@ -118,7 +118,11 @@ pub async fn download_from_civitai(
     Ok(())
 }
 
-pub async fn complete_file_meta<P>(client: &Client, source_file: P) -> Result<()>
+pub async fn complete_file_meta<P>(
+    client: &Client,
+    source_file: P,
+    skip_community: bool,
+) -> Result<()>
 where
     P: AsRef<Path>,
 {
@@ -175,12 +179,17 @@ where
     .ok()
     .flatten();
 
-    println!("Collecting related community images metadata...");
-    let related_community_images = meta::fetch_model_community_images(client, model_meta.id())
-        .await
-        .inspect_err(|e| println!("Community images metadata retreive failed: {e}"))
-        .ok()
-        .unwrap_or(Vec::new());
+    let related_community_images = if !skip_community {
+        println!("Collecting related community images metadata...");
+        meta::fetch_model_community_images(client, model_meta.id())
+            .await
+            .inspect_err(|e| println!("Community images metadata retreive failed: {e}"))
+            .ok()
+            .unwrap_or(Vec::new())
+    } else {
+        println!("Skip collect related community images metadata.");
+        Vec::new()
+    };
 
     println!("Save model version readme file...");
     meta::save_model_version_readme(

@@ -6,6 +6,13 @@ use clap::Args;
 pub struct RenewOptions {
     #[arg(help = "The model file request to renew metadata.")]
     pub target_file: PathBuf,
+    #[arg(
+        long,
+        short = 'c',
+        help = "Skip retreive community images metadata.",
+        default_value = "false"
+    )]
+    pub skip_community: bool,
 }
 
 fn is_legal_model_file<P: AsRef<Path>>(file_path: P) -> bool {
@@ -32,7 +39,12 @@ pub async fn process_model_meta_renew(options: &RenewOptions) {
         .await
         .expect("failed to initialize client");
 
-    if let Err(e) = crate::civitai::complete_file_meta(&civitai_client, &options.target_file).await
+    if let Err(e) = crate::civitai::complete_file_meta(
+        &civitai_client,
+        &options.target_file,
+        options.skip_community,
+    )
+    .await
     {
         println!("\nCancel renew metadata for model file: {e}");
     }
