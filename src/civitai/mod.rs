@@ -98,14 +98,15 @@ pub async fn download_from_civitai(
         format!("Failed to download cover image for model version {selected_version}")
     })?;
 
-    println!("Fetching community posted images metadata related to model...");
     let community_images = if !skip_community {
+        println!("Fetching community posted images metadata related to model...");
         meta::fetch_model_community_images(client, model_id)
             .await
             .with_context(|| {
                 format!("Failed to fetch community posted images coorespond to model {model_id}")
             })?
     } else {
+        println!("Skip retreiving community images metadata related to model.");
         Vec::new()
     };
 
