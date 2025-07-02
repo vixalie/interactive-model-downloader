@@ -39,6 +39,7 @@ pub async fn download_from_civitai(
     model_id: u64,
     version_id: Option<u64>,
     destination_path: Option<&PathBuf>,
+    skip_community: bool,
 ) -> Result<()> {
     println!("Fetching model metadata...");
     let model_meta = meta::fetch_model_metadata(client, model_id).await?;
@@ -86,13 +87,6 @@ pub async fn download_from_civitai(
         }
     }
 
-    println!("Fetching community posted images metadata related to model...");
-    let community_images = meta::fetch_model_community_images(client, model_id)
-        .await
-        .with_context(|| {
-            format!("Failed to fetch community posted images coorespond to model {model_id}")
-        })?;
-
     let cover_image_filename = download_task::download_model_version_cover_image(
         client,
         &selected_version_meta,
@@ -103,6 +97,17 @@ pub async fn download_from_civitai(
     .with_context(|| {
         format!("Failed to download cover image for model version {selected_version}")
     })?;
+
+    println!("Fetching community posted images metadata related to model...");
+    let community_images = if !skip_community {
+        meta::fetch_model_community_images(client, model_id)
+            .await
+            .with_context(|| {
+                format!("Failed to fetch community posted images coorespond to model {model_id}")
+            })?
+    } else {
+        Vec::new()
+    };
 
     meta::save_model_version_readme(
         &model_meta,

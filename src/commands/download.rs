@@ -19,6 +19,13 @@ pub struct DownloadOptions {
         default_value = "false"
     )]
     pub fix_missing_dirs: bool,
+    #[arg(
+        long,
+        short = 'c',
+        help = "Skip collecting community images metadata.",
+        default_value = "false"
+    )]
+    pub skip_community: bool,
 }
 
 pub async fn process_download_options(options: &DownloadOptions) {
@@ -55,6 +62,7 @@ pub async fn process_download_options(options: &DownloadOptions) {
                 model_version_id
                     .map(|s| s.parse::<u64>().expect("Failed to parse model version id")),
                 options.output_path.as_ref(),
+                options.skip_community,
             )
             .await
             .expect("Failed to download model file(s)");
