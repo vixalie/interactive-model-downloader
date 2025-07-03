@@ -12,7 +12,7 @@ This is a command-line tool for downloading models from Hugging Face and Civitai
 
 ## Build from source
 
-IMD is written in Rust, you need install Rust first.
+IMD is written in Rust, you need install Rust (1.88.0) first.
 
 ### Install by Cargo
 
@@ -56,9 +56,15 @@ If the model has multiple versions, imd tool will show a list of version and ask
 
 > Download from huggingface is not implemented yet.
 
+> IMD will remember the models you have downloaded and renewed, if you want to download the model again, you will be prompted.
+
+Fetching community images metadata could be very slow, even failed for many times, you may use `-c` argument to skip it.
+
 ### Renew model information
 
-(Not implemented yet)
+Local models information can be completed by `imd renew` command. This feature will calculate the model file hash and search it from civitai.com.
+
+Like `imd download`, you may use `-c` argument to skip fetching community images metadata.
 
 ### List models
 
