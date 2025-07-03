@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use dialoguer::{MultiSelect, Select};
 
 use super::{ModelVersionBrief, ModelVersionFile, model};
@@ -86,4 +88,24 @@ pub fn select_model_version_files(
         .iter()
         .map(|index| file_choices[*index].0)
         .collect())
+}
+
+pub fn decide_proceeding_or_not<P: AsRef<Path>>(exists_file_location: P) -> bool {
+    let choices = vec!["Yes", "No"];
+    let default_choice: usize = 1;
+    let file_path = exists_file_location.as_ref();
+    let file_name = file_path.file_name().unwrap().to_string_lossy();
+    let file_location = file_path.parent().unwrap().to_string_lossy();
+
+    let interact_selection = Select::new()
+        .with_prompt(format!(
+            "File {} already exists in {}, redownload it?",
+            file_name, file_location
+        ))
+        .items(&choices)
+        .default(default_choice)
+        .interact()
+        .unwrap_or(1);
+
+    interact_selection == 0
 }

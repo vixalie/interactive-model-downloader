@@ -1125,7 +1125,7 @@ dependencies = [
 
 [[package]]
 name = "imd"
-version = "0.1.10"
+version = "0.1.12"
 dependencies = [
  "anyhow",
  "backoff",

@@ -13,6 +13,8 @@ mod selections;
 
 pub use model::*;
 
+use crate::cache_db;
+
 pub fn try_parse_civitai_model_url(url: &Url) -> Result<(String, Option<String>)> {
     let path_segments = url.path_segments();
     let model_id = if let Some(mut segments) = path_segments {
@@ -68,9 +70,31 @@ pub async fn download_from_civitai(
             .find(|f| f.id() == id)
             .map(ModelVersionFile::name)
     };
+    let version_file_hash = |id: u64| -> Option<String> {
+        version_files
+            .iter()
+            .find(|f| f.id() == id)
+            .map(ModelVersionFile::blake3_hash)
+            .flatten()
+    };
 
     for file_id in selected_version_file_ids {
-        // todo: 检查缓存数据库中是否已经存在该模型的下载记录，对比数据库中记录的文件位置列表
+        // 检查缓存数据库中是否已经存在该模型的下载记录，对比数据库中记录的文件位置列表
+        // 未下载过的和未使用renew命令的文件将会直接重新下载。
+        if let Some(hash) = version_file_hash(file_id) {
+            // 只有在存在有效hash数据的时候才进行判断
+            let file_locations = cache_db::retreive_civitai_model_locations_by_blake3(&hash);
+            if let Ok(Some(locations)) = file_locations {
+                let first_exists_location = locations.iter().find(|loc| loc.exists());
+                if let Some(file_path) = first_exists_location
+                    && !selections::decide_proceeding_or_not(file_path)
+                {
+                    continue;
+                }
+            }
+        }
+
+        // 下载指定的文件
         println!("Downloading file(s)...");
         let file_name = version_file_name(file_id)
             .with_context(|| format!("Failed to confirm model version file {file_id} name"))?;

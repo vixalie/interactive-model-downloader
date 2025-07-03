@@ -151,7 +151,7 @@ pub fn store_civitai_model_file_location<P: AsRef<Path>>(
 }
 
 #[allow(dead_code)]
-pub fn retreive_civitai_model_locations_by_blake3(hash: String) -> Result<Option<Vec<PathBuf>>> {
+pub fn retreive_civitai_model_locations_by_blake3(hash: &str) -> Result<Option<Vec<PathBuf>>> {
     let location_key = format!("civitai:model:file:blake3:{}", hash);
     let db = CACHE_DB
         .lock()
