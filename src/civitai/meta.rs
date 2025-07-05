@@ -15,7 +15,11 @@ use crate::{cache_db, downloader::make_backoff_policy, utils::duration_to_sec_st
 
 use super::model::{self, ImageMeta};
 
-const FILENAME_SET: &AsciiSet = &NON_ALPHANUMERIC.remove(b'.').remove(b'_').remove(b'-');
+const FILENAME_SET: &AsciiSet = &NON_ALPHANUMERIC
+    .remove(b'.')
+    .remove(b'_')
+    .remove(b'-')
+    .remove(b'/');
 
 pub async fn fetch_model_metadata(client: &Client, model_id: u64) -> Result<model::Model> {
     let config = crate::configuration::CONFIGURATION.read().await;
