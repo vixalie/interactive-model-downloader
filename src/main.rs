@@ -37,4 +37,7 @@ async fn main() {
         }
         _ => {}
     }
+
+    // Gracefully shutdown the cache database to prevent background thread panics
+    let _ = cache_db::shutdown_cache_db();
 }

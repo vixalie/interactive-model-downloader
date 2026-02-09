@@ -170,3 +170,12 @@ pub fn retreive_civitai_model_locations_by_blake3(hash: &str) -> Result<Option<V
         None => Ok(None),
     }
 }
+
+/// Gracefully shutdown the cache database to prevent background thread panics
+pub fn shutdown_cache_db() -> Result<()> {
+    if let Ok(db) = CACHE_DB.lock() {
+        // Flush all pending operations to ensure data is written
+        db.flush()?;
+    }
+    Ok(())
+}
