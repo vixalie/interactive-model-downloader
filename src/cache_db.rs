@@ -1,6 +1,7 @@
 use std::{
     path::{Path, PathBuf},
     sync::{Arc, LazyLock, Mutex},
+    time::Duration,
 };
 
 use anyhow::{Result, anyhow};
@@ -172,10 +173,24 @@ pub fn retreive_civitai_model_locations_by_blake3(hash: &str) -> Result<Option<V
 }
 
 /// Gracefully shutdown the cache database to prevent background thread panics
+///
+/// This function is critical for proper shutdown because:
+/// 1. sled spawns a background "log flusher" thread
+/// 2. If the database is dropped at program termination (via LazyLock), a race condition
+///    occurs between the flusher thread shutdown and the lock being dropped
+/// 3. This can cause panics in crossbeam-utils sharded locks
+///
+/// By calling this explicitly during application shutdown (while the tokio runtime is
+/// still active), we ensure the database is properly flushed and the flusher thread
+/// can shut down cleanly.
 pub fn shutdown_cache_db() -> Result<()> {
     if let Ok(db) = CACHE_DB.lock() {
-        // Flush all pending operations to ensure data is written
+        // Flush all pending operations to ensure data is written to disk
         db.flush()?;
+
+        // Give the flusher thread a moment to complete any in-flight operations
+        // This reduces the likelihood of lock contention during shutdown
+        std::thread::sleep(Duration::from_millis(50));
     }
     Ok(())
 }
